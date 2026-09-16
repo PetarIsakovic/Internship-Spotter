@@ -3,81 +3,866 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>After Careful Consideration: Rejection or Offer?</title>
+<title>Spot the Rejection</title>
 <style>
+  /* ============================================================
+     SPOT THE REJECTION
+     A long, realistic Gmail-style email loads. Find and tap the
+     tell-tale rejection word (e.g. "Unfortunately") before the
+     timer runs out. Faster = more points.
+     ============================================================ */
   :root {
-    --bg: #0e1116;
-    --surface: #171b23;
-    --surface-2: #1d222c;
-    --line: #262c37;
-    --line-soft: #1e232c;
-    --text: #eceef2;
-    --text-2: #b6bcc8;
-    --muted: #7c8494;
-    --accent: #6d8bff;
-    --accent-soft: #223055;
-    --reject: #e2635f;
-    --offer: #4bb583;
-    --warn: #d9a441;
-    --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.28);
-    --shadow-lg: 0 4px 12px rgba(0,0,0,.35), 0 24px 60px rgba(0,0,0,.45);
+    --bg: #101012;
+    --mail-bg: #0b0b0d;
+    --text: #e8eaed;
+    --text-2: #bdc1c6;
+    --muted: #9aa0a6;
+    --faint: #5f6368;
+    --line: #2a2b2e;
+    --accent: #8ab4f8;        /* gmail-ish blue */
+    --pink: #d16ba5;          /* avatar */
+    --hl: #fde68a;            /* highlight yellow (like screenshot) */
+    --hl-ink: #3a2f00;
+    --good: #81c995;
+    --bad: #f28b82;
+    --font: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
   body {
-    margin: 0;
-    font-family: var(--font);
-    -webkit-font-smoothing: antialiased;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh; padding: 40px 24px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    letter-spacing: -0.01em;
+    background: var(--bg); color: var(--text); font-family: var(--font);
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh; -webkit-font-smoothing: antialiased;
   }
-  .wrap { width: min(560px, 100%); text-align: center; }
-  .kicker { color: var(--muted); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; font-size: .7rem; }
-  h1 { font-size: clamp(2rem, 6vw, 2.9rem); margin: 12px 0 10px; font-weight: 700; letter-spacing: -0.03em; }
-  .tagline { color: var(--text-2); font-size: 1.02rem; line-height: 1.6; max-width: 480px; margin: 0 auto 32px; }
 
-  .card {
-    background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
-    padding: 30px; text-decoration: none; color: var(--text); display: block;
-    box-shadow: var(--shadow-lg); text-align: left; transition: border-color .18s, transform .18s;
-    position: relative;
+  /* phone-like frame */
+  .phone {
+    width: min(430px, 100%); background: var(--mail-bg); min-height: 100vh;
+    position: relative; display: flex; flex-direction: column;
+    box-shadow: 0 0 60px rgba(0,0,0,.5);
   }
-  .card:hover { border-color: #333b48; transform: translateY(-2px); }
-  .card .mark { width: 52px; height: 52px; border-radius: 13px; background: linear-gradient(135deg,#6d8bff,#8a6dff); display:flex; align-items:center; justify-content:center; font-size:1.5rem; margin-bottom: 16px; }
-  .card h2 { margin: 0 0 8px; font-size: 1.35rem; font-weight: 700; letter-spacing:-0.02em; }
-  .card p { margin: 0; color: var(--text-2); line-height: 1.6; font-size: .95rem; }
-  .tags { display:flex; flex-wrap:wrap; gap:7px; margin-top:18px; }
-  .tags span { background: var(--surface-2); border:1px solid var(--line); color: var(--muted); font-size:.72rem; padding:4px 10px; border-radius: 20px; }
-  .cta { margin-top: 22px; display:inline-flex; align-items:center; gap:8px; background: var(--accent); color:#fff; font-weight:600; font-size:.95rem; padding: 12px 22px; border-radius: 10px; transition: background .15s; }
-  .card:hover .cta { background:#5a7cff; }
 
-  footer { margin-top: 34px; color: var(--muted); font-size: .82rem; text-align: center; max-width: 460px; line-height:1.6; }
-  .quote { font-style: italic; margin-top: 8px; color: var(--muted); }
+  /* top status/hud strip */
+  .hud {
+    position: sticky; top: 0; z-index: 5; background: rgba(11,11,13,.92); backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums;
+  }
+  .hud .stat { text-align: center; }
+  .hud .stat .l { font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); display:block; }
+  .hud .stat .v { font-size: 1rem; font-weight: 700; }
+  #hudScore .v { color: var(--text); }
+
+  /* email header */
+  .mail { padding: 20px 20px 60px; overflow-y: auto; flex: 1; }
+  .subject-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 22px; }
+  .subject-row h1 { font-size: 1.55rem; font-weight: 400; line-height: 1.2; flex: 1; }
+  .chip { font-size: .68rem; color: var(--muted); border: 1px solid var(--faint); border-radius: 4px; padding: 2px 7px; margin-top: 6px; }
+  .star { color: var(--faint); font-size: 1.3rem; margin-top: 4px; }
+
+  .sender-row { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+  .avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--pink); color: #fff; display:flex; align-items:center; justify-content:center; font-size: 1.15rem; font-weight: 500; flex: 0 0 42px; }
+  .sender-meta { flex: 1; line-height: 1.3; }
+  .sender-meta .name { font-weight: 600; font-size: .98rem; }
+  .sender-meta .name .date { color: var(--muted); font-weight: 400; font-size: .82rem; margin-left: 8px; }
+  .sender-meta .to { color: var(--muted); font-size: .82rem; }
+  .sender-actions { color: var(--muted); font-size: 1.1rem; }
+
+  /* body: long, realistic */
+  .body { font-size: 1.12rem; line-height: 1.62; color: var(--text); }
+  .body p { margin-bottom: 20px; }
+  /* every word is tappable */
+  .w { cursor: pointer; border-radius: 4px; padding: 0 1px; transition: background .1s; }
+  .w:hover { background: rgba(138,180,248,.14); }
+  .w.hit { background: var(--hl); color: var(--hl-ink); font-weight: 600; }
+  .w.miss { background: var(--bad); color: #3a0f0c; animation: nudge .3s; }
+  @keyframes nudge { 25%{transform:translateX(-3px)} 75%{transform:translateX(3px)} }
+
+  /* floating countdown timer, like the screenshot overlay */
+  .timer {
+    position: fixed; top: 40%; left: 50%; transform: translate(-50%,-50%);
+    background: rgba(10,10,12,.86); color: #fff; font-size: 2.3rem; font-weight: 500;
+    padding: 12px 26px; border-radius: 10px; font-variant-numeric: tabular-nums; letter-spacing: 1px;
+    pointer-events: none; z-index: 8; transition: color .2s; box-shadow: 0 8px 30px rgba(0,0,0,.5);
+  }
+  .timer.low { color: var(--bad); }
+
+  .prompt {
+    position: sticky; bottom: 0; background: rgba(11,11,13,.94); backdrop-filter: blur(6px);
+    border-top: 1px solid var(--line); padding: 12px 16px; text-align: center;
+    font-size: .86rem; color: var(--muted); z-index: 6; min-height: 44px;
+  }
+  .prompt b { color: var(--text); }
+  .prompt.good { color: var(--good); } .prompt.bad { color: var(--bad); }
+
+  /* overlays */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(8,8,10,.94); backdrop-filter: blur(4px);
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; z-index: 20; padding: 28px; text-align: center;
+  }
+  .overlay.show { display: flex; }
+  .overlay .mark { font-size: 2.6rem; }
+  .overlay h2 { font-size: 1.7rem; font-weight: 700; }
+  .overlay p { color: var(--muted); line-height: 1.6; max-width: 340px; font-size: .95rem; }
+  .overlay .big { font-size: 3rem; font-weight: 800; }
+  .overlay button {
+    font-family: inherit; font-size: 1rem; font-weight: 600; padding: 13px 34px; border: 0;
+    border-radius: 10px; cursor: pointer; background: var(--accent); color: #06203a;
+  }
+  .overlay button:hover { filter: brightness(1.06); }
+  .overlay .best { color: var(--faint); font-size: .85rem; }
+  .stats { width: min(320px,100%); }
+  .stat-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line); font-size:.95rem; }
+  .stat-row:last-child{ border-bottom:0; } .stat-row .k{ color:var(--muted);} .stat-row .v{ font-weight:700; }
+
+  /* ---------- start-screen collage background ---------- */
+  #startOverlay { overflow: hidden; padding: 0; }
+  .collage {
+    position: absolute; inset: -6%; z-index: 0; pointer-events: none;
+    background: #08080a;
+  }
+  .collage .tile {
+    position: absolute; width: 230px; border-radius: 6px; overflow: hidden;
+    background: #fff; color: #14161a; box-shadow: 0 10px 30px rgba(0,0,0,.55);
+    font-size: 8.5px; line-height: 1.5; padding: 12px 13px;
+    border: 1px solid rgba(0,0,0,.2);
+  }
+  .collage .tile .t-from { font-weight: 700; font-size: 9px; color:#111; margin-bottom: 2px; }
+  .collage .tile .t-sub { color:#666; font-size: 8px; margin-bottom: 7px; border-bottom:1px solid #eee; padding-bottom:6px; }
+  .collage .tile .t-body { color:#2a2f3a; }
+  .collage .tile .t-hl { background:#fde68a; color:#3a2f00; font-weight:700; padding:0 2px; border-radius:2px; }
+  /* dark vignette so the foreground card stays readable */
+  .collage::after {
+    content:""; position:absolute; inset:0;
+    background: radial-gradient(60% 55% at 50% 48%, rgba(8,8,10,.35), rgba(8,8,10,.86) 78%);
+  }
+
+  /* foreground start card sits above the collage (Crossy Road pop-art style) */
+  .start-card {
+    position: relative; z-index: 2; display:flex; flex-direction:column; align-items:center; gap:18px;
+    background: linear-gradient(160deg, #12203a 0%, #0b1220 100%);
+    border: 1px solid rgba(255,255,255,.08); border-radius: 22px;
+    padding: 34px 40px 38px; box-shadow: 0 20px 60px rgba(0,0,0,.65);
+    animation: popIn .5s cubic-bezier(.18,1.5,.4,1) both;
+  }
+  .start-card h2 {
+    font-weight: 900; font-size: 1.7rem; letter-spacing: .04em; color: #1a1400;
+    background: #ffcf3f; padding: 10px 22px; border-radius: 16px;
+    box-shadow: 0 6px 0 #d9a300, 0 12px 24px rgba(0,0,0,.45);
+    transform: rotate(-2deg); margin-bottom: 2px;
+    animation: popDrop .55s cubic-bezier(.18,1.5,.4,1) both;
+  }
+
+  /* ---------- start-screen name input (chunky, matches leaderboard rows) ---------- */
+  .name-input {
+    width: min(300px,100%); font-family:inherit; font-size:1.05rem; font-weight:700; text-align:center;
+    padding:15px 16px; border-radius:14px; background:#1c2740; border:2px solid #2f3d5e;
+    color:#eaf0ff; outline:none; box-shadow:0 4px 0 rgba(0,0,0,.35);
+    animation: popIn .5s .1s cubic-bezier(.18,1.5,.4,1) both;
+  }
+  .name-input::placeholder { color:#7c8db0; font-weight:600; }
+  .name-input:focus { border-color: #8ab4f8; }
+  .name-input.error { border-color: var(--bad); background:#3a1c22; }
+  .name-input.shake { animation: shake .4s; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    15% { transform: translateX(-9px); }
+    30% { transform: translateX(8px); }
+    45% { transform: translateX(-6px); }
+    60% { transform: translateX(5px); }
+    75% { transform: translateX(-3px); }
+  }
+  .name-note { font-size:.9rem; color:#ff9a94; min-height:16px; font-weight:700; transition:opacity .15s; }
+  .name-note.shake { animation: shake .4s; }
+  /* Start button reuses the bouncy .pop-btn look (defined below) */
+  #startBtn { animation: popIn .5s .2s cubic-bezier(.18,1.6,.4,1) both; }
+  /* keep the name box and Start button close together */
+  .start-card { gap: 12px; }
+  .start-card .name-note { min-height: 0; margin: -4px 0; }
+  .start-card .name-note:empty { display: none; }
+  .start-card #startBtn { margin-top: 4px; }
+
+  /* ================= CROSSY ROAD-STYLE END LEADERBOARD ================= */
+  /* dedicated background for the end screen */
+  #overOverlay { background: linear-gradient(160deg, #12203a 0%, #0b1220 100%); }
+
+  .lb-screen {
+    width: min(400px, 100%); display:flex; flex-direction:column; align-items:stretch; gap:14px;
+  }
+  .lb-header { text-align:center; }
+  .lb-heading {
+    display:inline-block; font-weight:900; font-size:2rem; letter-spacing:.06em; color:#fff;
+    background:#ffcf3f; color:#1a1400; padding:10px 22px; border-radius:16px;
+    box-shadow:0 6px 0 #d9a300, 0 12px 24px rgba(0,0,0,.45);
+    transform: rotate(-2deg);
+    animation: popDrop .55s cubic-bezier(.18,1.5,.4,1) both;
+  }
+  .lb-your {
+    margin-top:14px; font-weight:800; font-size:1.05rem; color:#fff;
+    animation: popIn .5s .12s cubic-bezier(.18,1.5,.4,1) both;
+  }
+  .lb-your b { color:#ffcf3f; }
+
+  .lb-list { list-style:none; display:flex; flex-direction:column; gap:8px; }
+  .lb-list li {
+    display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:14px; font-size:1rem;
+    background:#1c2740; color:#eaf0ff; font-weight:700; box-shadow:0 4px 0 rgba(0,0,0,.35);
+    /* each row pops in; --i sets its stagger delay (set inline in JS) */
+    animation: popRow .45s cubic-bezier(.18,1.6,.4,1) both;
+    animation-delay: calc(0.18s + var(--i, 0) * 0.06s);
+  }
+  .lb-list li .rank {
+    width:30px; height:30px; flex:0 0 30px; border-radius:9px; background:#2f3d5e; color:#cfe0ff;
+    display:flex; align-items:center; justify-content:center; font-weight:900; font-size:.9rem;
+  }
+  .lb-list li:nth-child(1) .rank { background:#ffcf3f; color:#1a1400; }
+  .lb-list li:nth-child(2) .rank { background:#c9d2e6; color:#1a1f2e; }
+  .lb-list li:nth-child(3) .rank { background:#e0955a; color:#241000; }
+  .lb-list .who { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lb-list .time { font-weight:900; font-variant-numeric:tabular-nums; color:#ffcf3f; }
+  .lb-list li.you { background:#2b57b0; box-shadow:0 4px 0 #16306a; outline:2px solid #8ab4f8; }
+  .lb-empty { color:#9fb0d0; text-align:center; font-size:.95rem; padding:16px 0; background:transparent !important; box-shadow:none !important; font-weight:600; animation:none !important; }
+
+  .lb-note { font-size:.85rem; color:#9fb0d0; text-align:center; min-height:16px; font-weight:600;
+    animation: popIn .4s .2s cubic-bezier(.18,1.5,.4,1) both; }
+  .lb-note.ok { color:#7fdca0; } .lb-note.err { color:#ff9a94; }
+
+  .pop-btn {
+    margin-top:6px; align-self:center; font-family:inherit; font-weight:900; font-size:1.05rem;
+    letter-spacing:.04em; color:#0a2a12; background:#57d68d; border:0; border-radius:16px;
+    padding:15px 40px; cursor:pointer; box-shadow:0 6px 0 #2f9e6f, 0 10px 22px rgba(0,0,0,.4);
+    animation: popIn .5s .3s cubic-bezier(.18,1.6,.4,1) both;
+  }
+  .pop-btn:hover { filter:brightness(1.05); }
+  .pop-btn:active { transform: translateY(4px); box-shadow:0 2px 0 #2f9e6f, 0 6px 14px rgba(0,0,0,.4); }
+
+  /* bouncy pop-in keyframes (Crossy Road-ish overshoot) */
+  @keyframes popDrop {
+    0%   { opacity:0; transform: translateY(-60px) rotate(-2deg) scale(.6); }
+    100% { opacity:1; transform: translateY(0) rotate(-2deg) scale(1); }
+  }
+  @keyframes popIn {
+    0%   { opacity:0; transform: scale(.5); }
+    100% { opacity:1; transform: scale(1); }
+  }
+  @keyframes popRow {
+    0%   { opacity:0; transform: translateX(-40px) scale(.85); }
+    60%  { opacity:1; }
+    100% { opacity:1; transform: translateX(0) scale(1); }
+  }
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="kicker">After Careful Consideration</div>
-    <h1>Rejection or Offer?</h1>
-    <p class="tagline">You've read a thousand of these emails. Might as well make a game of it. Spot the "unfortunately" before the clock runs out.</p>
-
-    <a class="card" href="game2-rejection-or-offer.html">
-      <div class="mark">📬</div>
-      <h2>Play the game</h2>
-      <p>Sort a stream of emails from the companies every UWaterloo co-op knows: Jane Street, Citadel, Two Sigma, Stripe, Shopify, Google, OpenAI and more. Reject or Offer before the timer drains. Build streaks, stack multipliers, and level up as the inbox speeds up. After every guess the tell-tale phrase is highlighted so you learn exactly what gave it away.</p>
-      <div class="tags">
-        <span>50+ emails</span><span>3 difficulties</span><span>Combo multipliers</span><span>Levels</span><span>High scores</span><span>Phrase highlights</span><span>Keyboard controls</span>
-      </div>
-      <span class="cta">Start playing →</span>
-    </a>
+<div class="phone">
+  <!-- HUD -->
+  <div class="hud">
+    <div class="stat"><span class="l">Time</span><span class="v" id="clock">0.00</span></div>
+    <div class="stat"><span class="l">Email</span><span class="v"><span id="round">0</span>/<span id="rounds">0</span></span></div>
+    <div class="stat"><span class="l">Best</span><span class="v" id="best">-</span></div>
   </div>
 
-  <footer>
-    <p>Self-contained. No install, no build, no server. Just open the file in a browser.</p>
-    <p class="quote">"We were impressed by your background, but after careful consideration…"</p>
-  </footer>
+  <!-- EMAIL -->
+  <div class="mail" id="mail">
+    <div class="subject-row">
+      <h1 id="subject">-</h1>
+      <span class="chip">Inbox</span>
+    </div>
+    <div class="star">☆</div>
+    <div class="sender-row">
+      <div class="avatar" id="avatar">F</div>
+      <div class="sender-meta">
+        <div class="name"><span id="senderName">-</span><span class="date" id="date">-</span></div>
+        <div class="to">to me ⌄</div>
+      </div>
+      <div class="sender-actions">⋯</div>
+    </div>
+    <div class="body" id="body"></div>
+  </div>
+
+  <!-- floating stopwatch (counts up) -->
+  <div class="timer" id="timer">0.00</div>
+
+  <!-- bottom prompt -->
+  <div class="prompt" id="prompt">Find and tap the word <b>“Unfortunately”</b> as fast as you can.</div>
+</div>
+
+<!-- START -->
+<div class="overlay show" id="startOverlay">
+  <div class="collage" id="collage" aria-hidden="true"></div>
+  <div class="start-card">
+    <h2>Spot the Rejection</h2>
+    <input id="nameInput" class="name-input" type="text" maxlength="16" placeholder="Enter your name" autocomplete="off" spellcheck="false">
+    <div class="name-note" id="nameNote"></div>
+    <button id="startBtn" class="pop-btn">Start</button>
+    <b id="startBest" hidden></b>
+  </div>
+</div>
+
+<!-- OVER: leaderboard only, Crossy Road pop-in -->
+<div class="overlay" id="overOverlay">
+  <div class="lb-screen" id="lbScreen">
+    <div class="lb-header" id="lbHeader">
+      <div class="lb-heading">LEADERBOARD</div>
+      <div class="lb-your" id="lbYour">Your time -</div>
+    </div>
+    <ul class="lb-list" id="lbList"><li class="lb-empty">Loading…</li></ul>
+    <div class="lb-note" id="lbNote"></div>
+    <button id="againBtn" class="pop-btn">PLAY AGAIN</button>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   Emails: long & realistic. The target word to find is always "Unfortunately"
+   (case-insensitive, first occurrence). Bodies use \n\n between paragraphs.
+   Each body contains "Unfortunately" exactly once.
+   ========================================================================= */
+const TARGET = "Unfortunately";
+
+/* =========================================================================
+   LEADERBOARD CONFIG
+   Paste your API base URL here after deploying the AWS backend (see
+   AWS-LEADERBOARD-SETUP.md). Example:
+     const LEADERBOARD_API = "https://abc123.execute-api.us-east-1.amazonaws.com";
+   Leave as "" to run the game with the leaderboard disabled (offline mode).
+   ========================================================================= */
+const LEADERBOARD_API = "https://34n8w2i1xd.execute-api.us-east-1.amazonaws.com";
+
+const EMAILS = [
+  {
+    company:"Forterra", initial:"F", subject:"Thank you from Forterra", date:"Jul 30",
+    body:
+`Hi Jacob,
+
+Thank you for taking the time to apply for the Autonomy Software Engineer role. We understand how daunting the job search process can be, so we try to do things differently here in order to avoid adding to it. At Forterra, transparent communication is one of our core values--and this extends to our hiring process as well.
+
+We received tremendous interest in this role and a plethora of highly qualified candidates. Unfortunately, at this time, we have chosen not to move forward with your application.
+
+Where you choose to work is a huge part of your life, so we genuinely appreciate you considering us. We hope that you'll stay in touch regarding future opportunities.
+
+Thank you,
+Forterra`
+  },
+  {
+    company:"Jane Street", initial:"J", subject:"Your Jane Street Application", date:"Aug 12",
+    body:
+`Dear Jacob,
+
+Thank you so much for taking the time to interview with us for the Software Engineer position. It was a genuine pleasure getting to learn more about your background and the projects you've worked on.
+
+Our hiring committee met to review every candidate carefully, and the decisions this cycle were especially difficult given the strength of the pool. Unfortunately, after much deliberation, we will not be moving your application forward at this time.
+
+We would warmly encourage you to apply again in a future recruiting cycle. Please don't hesitate to reach out if you have any questions.
+
+Warm regards,
+Jane Street Recruiting`
+  },
+  {
+    company:"Stripe", initial:"S", subject:"Update on your Stripe application", date:"Sep 03",
+    body:
+`Hi Jacob,
+
+We wanted to follow up regarding your application for the Backend Engineer role on our Payments team. First, thank you for the energy and thoughtfulness you brought to each of your conversations with us.
+
+Your technical fundamentals were clearly strong and the team enjoyed meeting you. Unfortunately, after comparing all candidates for this particular opening, we have decided to proceed with someone whose experience more closely matches what the team needs right now.
+
+This is not a reflection of your ability, and we'd genuinely welcome a future application. Thank you again for your interest in Stripe.
+
+Best,
+The Stripe Recruiting Team`
+  },
+  {
+    company:"Citadel", initial:"C", subject:"Regarding your candidacy", date:"Aug 27",
+    body:
+`Dear Jacob,
+
+Thank you for the time and effort you invested throughout our interview process for the Quantitative Developer internship. We know how much preparation goes into these conversations and we don't take that lightly.
+
+After careful review of all candidates, we have made our final decisions. Unfortunately, we will not be extending an offer for this role. The caliber of applicants was exceptional, which made these choices particularly challenging for our team.
+
+We sincerely hope you'll consider Citadel again in the future, and we wish you the very best in your search.
+
+Sincerely,
+Citadel Campus Recruiting`
+  },
+  {
+    company:"Shopify", initial:"S", subject:"Your application to Shopify", date:"Sep 09",
+    body:
+`Hi Jacob,
+
+Thanks so much for your interest in the Developer Degree / intern role at Shopify and for sharing your work with us. We really enjoyed learning about the things you've built.
+
+We had an incredible response to this posting. Unfortunately, after weighing everything carefully, we've decided to move forward with other candidates for this particular team this term.
+
+Please know this was a tough call. We'd love for you to keep an eye on future postings that match your skills--and to apply again.
+
+Take care,
+Shopify Talent Team`
+  },
+  {
+    company:"OpenAI", initial:"O", subject:"OpenAI application update", date:"Aug 19",
+    body:
+`Hi Jacob,
+
+Thank you for your interest in the Research Engineer internship at OpenAI, and for taking the time to speak with our team about your work.
+
+We received an exceptionally competitive set of applications this cycle. Unfortunately, after thoughtful consideration, we won't be proceeding with your application for this particular role at this time.
+
+We were genuinely impressed by much of what you shared, and we hope you'll consider applying again as our teams and needs continue to grow.
+
+All the best,
+OpenAI Recruiting`
+  },
+  {
+    company:"Databricks", initial:"D", subject:"Your Databricks interview", date:"Jul 18",
+    body:
+`Hi Jacob,
+
+Thank you for spending time with the team for the Software Engineer, Data Platform role. We really appreciated your curiosity and the way you reasoned through the systems design questions.
+
+We had an unusually strong field this cycle. Unfortunately, we've decided to move ahead with other candidates whose experience lines up more closely with this specific team's needs.
+
+We'd be glad to see you apply again as new roles open up. Thanks again for your interest in Databricks.
+
+Best,
+Databricks Recruiting`
+  },
+  {
+    company:"Nvidia", initial:"N", subject:"Application update from NVIDIA", date:"Aug 05",
+    body:
+`Dear Jacob,
+
+Thanks so much for your interest in the GPU Software Engineer internship and for the time you invested in our conversations. Your enthusiasm for low-level performance work really came through.
+
+After a thorough review of all applicants, we've had to make some very tough calls. Unfortunately, we are unable to offer you a position for this term.
+
+Please don't be discouraged from applying to future openings that fit your background. We wish you the very best.
+
+Warm regards,
+NVIDIA University Recruiting`
+  },
+  {
+    company:"Ramp", initial:"R", subject:"Re: Software Engineer application", date:"Sep 11",
+    body:
+`Hey Jacob,
+
+Thanks for taking the time to chat with us about the full-stack role at Ramp. We loved hearing about the side projects you've shipped and the impact you've had.
+
+This was a genuinely hard decision given how many excellent applicants we spoke with. Unfortunately, we won't be moving forward with an offer at this stage.
+
+We're growing fast, so please keep an eye on our careers page. We'd welcome a future application. Thanks again.
+
+Best,
+The Ramp Talent Team`
+  },
+  {
+    company:"Palantir", initial:"P", subject:"Your Palantir application", date:"Jun 27",
+    body:
+`Dear Jacob,
+
+Thank you for interviewing for the Forward Deployed Software Engineer position and for the effort you put into the take-home and follow-up discussions.
+
+Our team debated at length, as the caliber of candidates was exceptional. Unfortunately, we have decided not to extend an offer for this role at this time.
+
+We truly appreciate your interest in Palantir and encourage you to stay connected for future opportunities.
+
+Sincerely,
+Palantir Recruiting`
+  },
+  {
+    company:"Datadog", initial:"D", subject:"Update on your candidacy", date:"Aug 22",
+    body:
+`Hi Jacob,
+
+Thank you for your interest in the Backend Engineer role on our Observability team, and for the thoughtful way you approached each interview.
+
+We received an incredible number of strong applications. Unfortunately, after careful consideration, we've chosen to proceed with another candidate for this particular opening.
+
+We hope you'll consider Datadog again down the road. Thanks so much for your time.
+
+Best regards,
+Datadog Talent`
+  },
+  {
+    company:"Snowflake", initial:"S", subject:"Regarding your application", date:"Jul 09",
+    body:
+`Dear Jacob,
+
+We appreciate the time you took to interview for the Software Engineer, Query Engine position and to learn more about Snowflake.
+
+The hiring committee reviewed every candidate closely. Unfortunately, we will not be progressing your application further for this role at this time.
+
+This was not an easy decision, and we'd sincerely welcome an application from you in the future. Wishing you all the best.
+
+Kind regards,
+Snowflake Recruiting`
+  },
+  {
+    company:"Coinbase", initial:"C", subject:"Your Coinbase application", date:"Sep 01",
+    body:
+`Hi Jacob,
+
+Thanks for your interest in the Software Engineer role and for taking the time to meet with several members of the team. We enjoyed the conversation about distributed systems.
+
+After weighing everything carefully across a very competitive pool, we've reached a decision. Unfortunately, we won't be able to move forward with your candidacy right now.
+
+We'd genuinely encourage you to reapply as the team grows. Thank you again for considering Coinbase.
+
+Best,
+Coinbase Recruiting`
+  },
+  {
+    company:"Airbnb", initial:"A", subject:"Thank you from Airbnb", date:"Aug 29",
+    body:
+`Hi Jacob,
+
+Thank you for interviewing for the Software Engineer, Frontend Platform role, and for sharing so openly about your past work. It was a pleasure getting to know you.
+
+We spoke with many talented people for this position. Unfortunately, we've decided to move forward with another candidate whose background is a closer fit for what the team needs today.
+
+We'd love for you to keep Airbnb in mind for the future. Thanks again for your time and interest.
+
+Warmly,
+Airbnb Recruiting`
+  },
+  {
+    company:"Two Sigma", initial:"T", subject:"Your application to Two Sigma", date:"Jun 15",
+    body:
+`Dear Jacob,
+
+Thank you for your interest in the Software Engineer position at Two Sigma and for the time you dedicated to our interview process.
+
+After careful review by our hiring team, and given an especially competitive applicant pool, we have made our decisions. Unfortunately, we are not able to move forward with your application at this time.
+
+We appreciate the opportunity to have learned about your work, and we wish you great success in your search.
+
+Regards,
+Two Sigma Campus Recruiting`
+  },
+  {
+    company:"Cloudflare", initial:"C", subject:"Re: your application", date:"Sep 06",
+    body:
+`Hi Jacob,
+
+Thanks for applying for the Systems Engineer role and for the energy you brought to your interviews with the team. Your interest in networking and edge computing stood out.
+
+We had a remarkable set of candidates this round. Unfortunately, we've decided not to proceed with your application for this particular position.
+
+We'd be happy to see you apply again for a future opening that matches your strengths. Thank you for your interest in Cloudflare.
+
+Best,
+Cloudflare Recruiting`
+  }
+];
+/* Each run plays a fixed number of emails, drawn at random from the pool above. */
+const RUN_LENGTH = 5;
+const $ = id => document.getElementById(id);
+
+/* speedrun state: clock counts UP; no lives; personal best = lowest total time */
+let deck=[], cur=null, round=0;
+let running=false, raf=null;
+let runStart=0, emailStart=0, elapsedMs=0;   // total run + per-email
+let found=0, findTimes=[];
+let playerName = '';                          // captured at the start screen (required)
+let best=+(localStorage.getItem('spot_best_ms')||0);   // ms; 0 = none yet
+
+$('rounds').textContent = RUN_LENGTH;
+$('best').textContent = best ? fmtSec(best) : '-';
+$('startBest').textContent = best ? fmtSec(best) : '-';
+
+/* pre-fill the name field with the last name used, and validate */
+$('nameInput').value = (localStorage.getItem('spot_name') || '').slice(0,16);
+validateName();
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
+function fmtSec(ms){ return (Math.max(0,ms)/1000).toFixed(2)+'s'; }
+function fmtClock(ms){ return (Math.max(0,ms)/1000).toFixed(2); }
+function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ---------------------------------------------------------------------------
+   Start-screen collage: scatter rotated email tiles across the background,
+   each showing a snippet with "Unfortunately" highlighted (like a photo wall).
+   --------------------------------------------------------------------------- */
+function buildCollage(){
+  const wall = $('collage');
+  if(!wall) return;
+  wall.innerHTML = '';
+  // a grab-bag of short rejection snippets to fill the tiles
+  const snips = EMAILS.map(e=>{
+    const i = e.body.toLowerCase().indexOf('unfortunately');
+    // take a window of text around "Unfortunately"
+    const start = Math.max(0, i - 60);
+    const end = Math.min(e.body.length, i + 90);
+    let frag = e.body.slice(start, end).replace(/\n+/g,' ').trim();
+    frag = frag.replace(/Jacob/g, 'there');
+    const hl = frag.replace(/Unfortunately/, '<span class="t-hl">Unfortunately</span>');
+    return { from: e.company, sub: e.subject, body: (start>0?'…':'') + hl + (end<e.body.length?'…':'') };
+  });
+
+  // tile across a grid with jitter + rotation so it reads like a montage
+  const cols = 5, rows = 5;
+  const vw = wall.clientWidth || window.innerWidth;
+  const vh = wall.clientHeight || window.innerHeight;
+  const cellW = vw / cols, cellH = vh / rows;
+  let n = 0;
+  for(let r=0; r<rows; r++){
+    for(let c=0; c<cols; c++){
+      const s = snips[n % snips.length]; n++;
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      const rot = (Math.random()*26 - 13).toFixed(1);
+      const jx = (Math.random()*0.5 - 0.25) * cellW;
+      const jy = (Math.random()*0.5 - 0.25) * cellH;
+      const left = c*cellW + jx - 30;
+      const top  = r*cellH + jy - 20;
+      const scale = (0.85 + Math.random()*0.4).toFixed(2);
+      tile.style.left = left + 'px';
+      tile.style.top = top + 'px';
+      tile.style.transform = `rotate(${rot}deg) scale(${scale})`;
+      tile.style.zIndex = String(Math.floor(Math.random()*10));
+      tile.innerHTML =
+        `<div class="t-from">${escapeHtml(s.from)}</div>`+
+        `<div class="t-sub">${escapeHtml(s.sub)}</div>`+
+        `<div class="t-body">${s.body}</div>`;
+      wall.appendChild(tile);
+    }
+  }
+}
+buildCollage();
+window.addEventListener('resize', ()=>{ if($('startOverlay').classList.contains('show')) buildCollage(); });
+
+/* Render the email body. The word "Unfortunately" (TARGET) is wrapped as a
+   single tappable target; every other word is individually tappable too. */
+function renderBody(email){
+  // personalize: the sample bodies greet "Jacob", swap in the player's name
+  const personalized = email.body.replace(/Jacob/g, playerName || 'there');
+  const paras = personalized.split('\n\n');
+  const tLower = TARGET.toLowerCase();
+  const html = paras.map(para => {
+    const idx = para.toLowerCase().indexOf(tLower);
+    const segments = [];
+    if(idx >= 0){
+      segments.push({text: para.slice(0, idx), target:false});
+      segments.push({text: para.slice(idx, idx+TARGET.length), target:true});
+      segments.push({text: para.slice(idx+TARGET.length), target:false});
+    } else {
+      segments.push({text: para, target:false});
+    }
+    return '<p>' + segments.map(seg => {
+      if(seg.text === '') return '';
+      if(seg.target) return `<span class="w tell" data-target="1">${escapeHtml(seg.text)}</span>`;
+      return seg.text.split(/(\s+)/).map(tok =>
+        tok.trim()==='' ? escapeHtml(tok) : `<span class="w" data-target="0">${escapeHtml(tok)}</span>`
+      ).join('');
+    }).join('') + '</p>';
+  }).join('');
+  $('body').innerHTML = html;
+  $('body').querySelectorAll('.w').forEach(w => w.addEventListener('click', ()=>onWord(w)));
+}
+
+function nextEmail(){
+  if(round >= RUN_LENGTH || !deck.length){ finish(); return; }
+  cur = deck.pop();
+  round++;
+  $('round').textContent = round;
+  $('subject').textContent = cur.subject;
+  $('senderName').textContent = cur.company;
+  $('date').textContent = cur.date;
+  $('avatar').textContent = cur.initial;
+  $('prompt').className = 'prompt';
+  $('prompt').innerHTML = 'Find and tap the word <b>“Unfortunately”</b>.';
+  renderBody(cur);
+  $('mail').scrollTop = 0;
+  emailStart = performance.now();
+}
+
+/* single rAF loop drives the count-up clock for the whole run */
+function tick(){
+  if(!running) return;
+  elapsedMs = performance.now() - runStart;
+  $('timer').textContent = fmtClock(elapsedMs);
+  $('clock').textContent = fmtClock(elapsedMs);
+  raf = requestAnimationFrame(tick);
+}
+
+function onWord(w){
+  if(!running) return;
+  if(w.dataset.target === '1'){
+    const t = (performance.now() - emailStart)/1000;
+    findTimes.push(t); found++;
+    w.classList.add('hit');
+    disableWords();
+    $('prompt').className = 'prompt good';
+    $('prompt').innerHTML = `✓ Found in <b>${t.toFixed(2)}s</b>`;
+    setTimeout(()=>{ if(running) nextEmail(); }, 550);   // brief beat, no penalty
+  } else {
+    // wrong tap: no penalty, no life loss. the clock is already ticking, so
+    // fumbling naturally costs you time. Just nudge and keep going.
+    w.classList.add('miss');
+    setTimeout(()=>w.classList.remove('miss'), 300);
+    $('prompt').className = 'prompt bad';
+    $('prompt').innerHTML = 'Not it, keep scanning.';
+  }
+}
+
+function disableWords(){ $('body').querySelectorAll('.w').forEach(w=>w.style.pointerEvents='none'); }
+
+/* clean + validate the start-screen name */
+function cleanName(raw){
+  return (raw || '').replace(/[<>\u0000-\u001F]/g,'').trim().slice(0,16);
+}
+function validateName(){
+  return cleanName($('nameInput').value).length >= 1;
+}
+
+function flagNameError(){
+  const input = $('nameInput'), note = $('nameNote');
+  note.textContent = '👆 Enter your name first!';
+  input.classList.add('error');
+  // restart the shake animation each click
+  input.classList.remove('shake'); note.classList.remove('shake');
+  void input.offsetWidth;   // force reflow so the animation replays
+  input.classList.add('shake'); note.classList.add('shake');
+  input.focus();
+}
+
+function start(){
+  if(!validateName()){
+    flagNameError();
+    return;
+  }
+  playerName = cleanName($('nameInput').value);
+  localStorage.setItem('spot_name', playerName);
+  $('nameNote').textContent = '';
+  $('nameInput').classList.remove('error','shake');
+  deck = shuffle([...EMAILS]).slice(0, RUN_LENGTH);   // random 5 from the pool
+  round=0; found=0; findTimes=[]; elapsedMs=0;
+  running=true;
+  $('startOverlay').classList.remove('show');
+  $('overOverlay').classList.remove('show');
+  $('clock').textContent='0.00'; $('timer').textContent='0.00';
+  runStart = performance.now();
+  nextEmail();
+  cancelAnimationFrame(raf); tick();
+}
+
+function finish(){
+  running=false; cancelAnimationFrame(raf);
+  const total = elapsedMs;
+  const isBest = best===0 || total < best;
+  if(isBest){ best = Math.round(total); localStorage.setItem('spot_best_ms', best); }
+  $('startBest').textContent = fmtSec(best);
+
+  // leaderboard-only end screen (Crossy Road pop-in)
+  lastRunMs = Math.round(total);
+  $('lbYour').innerHTML = isBest
+    ? `New best! <b>${fmtSec(total)}</b>`
+    : `Your time <b>${fmtSec(total)}</b> · best ${fmtSec(best)}`;
+  // re-trigger the pop animations by reflowing the screen node
+  const scr = $('lbScreen');
+  scr.style.animation = 'none'; void scr.offsetWidth; scr.style.animation = '';
+  $('overOverlay').classList.add('show');
+  setupLeaderboard();
+}
+
+/* =========================================================================
+   LEADERBOARD (AWS-backed; degrades gracefully when offline / not configured)
+   GET  {API}/scores        -> { scores: [ { name, timeMs }, ... ] }  (sorted asc)
+   POST {API}/scores  body: { name, timeMs } -> { ok: true }
+   The name is captured at the start screen; the run auto-submits on finish.
+   ========================================================================= */
+let lastRunMs = 0;
+
+function lbConfigured(){ return typeof LEADERBOARD_API === 'string' && LEADERBOARD_API.trim() !== ''; }
+
+/* ---- local leaderboard fallback (used when no API URL is configured) ---- */
+function localScores(){ try { return JSON.parse(localStorage.getItem('spot_scores')||'[]'); } catch { return []; } }
+function saveLocalScore(name, timeMs){
+  const list = localScores();
+  list.push({ name, timeMs });
+  list.sort((a,b)=>a.timeMs-b.timeMs);
+  localStorage.setItem('spot_scores', JSON.stringify(list.slice(0,25)));
+}
+
+function setupLeaderboard(){
+  const note = $('lbNote');
+  note.className = 'lb-note'; note.textContent = '';
+  if(!lbConfigured()){
+    // offline: keep a local leaderboard on this device so the board still shows
+    const name = playerName || 'You';
+    saveLocalScore(name, lastRunMs);
+    note.textContent = 'Local leaderboard (this device). Add your API URL to go global.';
+    renderLeaderboard(localScores(), name);
+    return;
+  }
+  // auto-submit this run under the player's name, then show the board
+  submitScore();
+}
+
+async function fetchLeaderboard(highlightName){
+  const list = $('lbList');
+  try {
+    const res = await fetch(LEADERBOARD_API.replace(/\/$/,'') + '/scores', { method:'GET' });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    renderLeaderboard(data.scores || [], highlightName);
+  } catch(e){
+    list.innerHTML = '<li class="lb-empty">Couldn\u2019t load the leaderboard. Try again shortly.</li>';
+  }
+}
+
+function renderLeaderboard(scores, highlightName){
+  const list = $('lbList');
+  if(!scores.length){ list.innerHTML = '<li class="lb-empty">No times yet. Be the first!</li>'; return; }
+  scores.sort((a,b)=> a.timeMs - b.timeMs);
+  // highlight only the first matching name (your best entry), not every row
+  let highlighted = false;
+  list.innerHTML = scores.slice(0,10).map((s,i)=>{
+    let cls = '';
+    if(!highlighted && highlightName && s.name === highlightName){ cls = 'you'; highlighted = true; }
+    return `<li class="${cls}" style="--i:${i}"><span class="rank">${i+1}</span>`+
+           `<span class="who">${escapeHtml(s.name)}</span>`+
+           `<span class="time">${(s.timeMs/1000).toFixed(2)}s</span></li>`;
+  }).join('');
+}
+
+async function submitScore(){
+  if(!lbConfigured()) return;
+  const name = playerName || 'Anonymous';
+  const note = $('lbNote');
+  note.className = 'lb-note'; note.textContent = 'Submitting your time…';
+  $('lbList').innerHTML = '<li class="lb-empty">Loading…</li>';
+  try {
+    const res = await fetch(LEADERBOARD_API.replace(/\/$/,'') + '/scores', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ name, timeMs: lastRunMs })
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    note.className = 'lb-note ok'; note.textContent = `Submitted as ${name} 🎉`;
+    fetchLeaderboard(name);
+  } catch(e){
+    note.className = 'lb-note err'; note.textContent = 'Submit failed. Showing current standings.';
+    fetchLeaderboard(name);
+  }
+}
+
+$('startBtn').addEventListener('click', start);
+$('againBtn').addEventListener('click', start);
+
+// name is required at the start screen; clear the error styling as they type
+$('nameInput').addEventListener('input', ()=>{
+  $('nameNote').textContent='';
+  $('nameInput').classList.remove('error','shake');
+});
+$('nameInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); start(); } });
+
+document.addEventListener('keydown', e=>{
+  // don't hijack keys while typing the name
+  if(document.activeElement === $('nameInput')) return;
+  if(!running && (e.code==='Space'||e.key==='Enter')) start();
+});
+</script>
 </body>
 </html>

@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Leaderboard backend for "Spot the Rejection" — a DynamoDB table, one Lambda
+  function, and an HTTP API with two routes (GET/POST /scores). CORS is enabled
+  for your site origin so the Netlify-hosted game can call it from the browser.
+
+# ---------------------------------------------------------------------------
+# Fill this in at deploy time. AllowOrigin must be your site's origin, e.g.
+#   https://your-game.netlify.app
+# Use "*" only for quick local testing (less secure).
+# ---------------------------------------------------------------------------
+Parameters:
+  AllowOrigin:
+    Type: String
+    Default: '*'
+    Description: The website origin allowed to call this API (e.g. https://your-game.netlify.app)
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 128
+    Runtime: nodejs20.x
+
+Resources:
+
+  # --- DynamoDB table that stores each submitted run ---
+  ScoresTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: SpotRejectionScores
+      BillingMode: PAY_PER_REQUEST      # no fixed cost; pay only per request
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: timeMs
+          AttributeType: N
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH                 # partition key (constant "LB")
+        - AttributeName: timeMs
+          KeyType: RANGE                # sort key = time, so fastest sorts first
+      # optional: auto-delete rows after 30 days to keep the table tidy
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+
+  # --- Lambda function that handles both GET and POST ---
+  LeaderboardFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      CodeUri: ./
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ScoresTable
+          ALLOW_ORIGIN: !Ref AllowOrigin
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ScoresTable
+      Events:
+        GetScores:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref LeaderboardApi
+            Path: /scores
+            Method: GET
+        PostScores:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref LeaderboardApi
+            Path: /scores
+            Method: POST
+
+  # --- HTTP API (API Gateway v2) with CORS for your site ---
+  LeaderboardApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref AllowOrigin
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - content-type
+        MaxAge: 300
+
+Outputs:
+  ApiBaseUrl:
+    Description: Paste this into LEADERBOARD_API in the game HTML.
+    Value: !Sub "https://${LeaderboardApi}.execute-api.${AWS::Region}.amazonaws.com"
+  TableName:
+    Description: DynamoDB table name.
+    Value: !Ref ScoresTable

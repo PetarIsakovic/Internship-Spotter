@@ -1,0 +1,7 @@
+# SAM build artifacts
+aws/.aws-sam/
+.aws-sam/
+samconfig.toml
+
+# OS junk
+.DS_Store

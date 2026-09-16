@@ -1,0 +1,8 @@
+{
+  "name": "spot-rejection-leaderboard",
+  "version": "1.0.0",
+  "description": "Leaderboard Lambda for the Spot the Rejection game",
+  "type": "module",
+  "main": "index.mjs",
+  "license": "MIT"
+}

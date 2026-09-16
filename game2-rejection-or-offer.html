@@ -3,757 +3,866 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rejection or Offer? — The Full Game</title>
+<title>Spot the Rejection</title>
 <style>
+  /* ============================================================
+     SPOT THE REJECTION
+     A long, realistic Gmail-style email loads. Find and tap the
+     tell-tale rejection word (e.g. "Unfortunately") before the
+     timer runs out. Faster = more points.
+     ============================================================ */
   :root {
-    /* refined slate palette */
-    --bg: #0e1116;
-    --bg-soft: #12161d;
-    --surface: #171b23;
-    --surface-2: #1d222c;
-    --elevated: #21262f;
-    --line: #262c37;
-    --line-soft: #1e232c;
-    --text: #eceef2;
-    --text-2: #b6bcc8;
-    --muted: #7c8494;
-    --accent: #6d8bff;        /* calm indigo — primary brand */
-    --accent-soft: #223055;
-    --reject: #e2635f;         /* muted red */
-    --reject-bg: #2a1c1d;
-    --offer: #4bb583;          /* muted green */
-    --offer-bg: #172a22;
-    --warn: #d9a441;
-    --radius: 12px;
-    --radius-lg: 16px;
-    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.28);
-    --shadow-lg: 0 4px 12px rgba(0,0,0,.35), 0 24px 60px rgba(0,0,0,.45);
-    --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --bg: #101012;
+    --mail-bg: #0b0b0d;
+    --text: #e8eaed;
+    --text-2: #bdc1c6;
+    --muted: #9aa0a6;
+    --faint: #5f6368;
+    --line: #2a2b2e;
+    --accent: #8ab4f8;        /* gmail-ish blue */
+    --pink: #d16ba5;          /* avatar */
+    --hl: #fde68a;            /* highlight yellow (like screenshot) */
+    --hl-ink: #3a2f00;
+    --good: #81c995;
+    --bad: #f28b82;
+    --font: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
   body {
-    margin: 0;
-    font-family: var(--font);
-    -webkit-font-smoothing: antialiased;
-    background: var(--bg);
-    color: var(--text);
+    background: var(--bg); color: var(--text); font-family: var(--font);
     display: flex; flex-direction: column; align-items: center;
-    min-height: 100vh; padding: 28px 20px 48px;
-    letter-spacing: -0.01em;
+    min-height: 100vh; -webkit-font-smoothing: antialiased;
   }
 
-  /* app shell wrapper for a contained, product-like layout */
-  .app { width: min(720px, 100%); display: flex; flex-direction: column; }
-
-  a.back { color: var(--muted); text-decoration: none; font-size: .85rem; display:inline-flex; align-items:center; gap:6px; margin-bottom: 20px; transition: color .15s; }
-  a.back:hover { color: var(--text-2); }
-
-  .app-header { display:flex; align-items:center; justify-content:space-between; margin-bottom: 22px; gap: 16px; }
-  .app-title { display:flex; flex-direction:column; gap:3px; }
-  .app-title .kicker { color: var(--muted); font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; }
-  h1 { font-size: 1.5rem; margin: 0; font-weight: 700; letter-spacing: -0.02em; }
-  .sub { color: var(--muted); margin: 0; font-size: .95rem; }
-
-  .toprow { display:flex; gap:8px; align-items:center; }
-  .icon-btn {
-    background: var(--surface); border:1px solid var(--line); color: var(--text-2);
-    padding: 8px 13px; font-size: .82rem; border-radius: 10px; font-weight: 500; cursor:pointer;
-    transition: background .15s, border-color .15s, color .15s;
+  /* phone-like frame */
+  .phone {
+    width: min(430px, 100%); background: var(--mail-bg); min-height: 100vh;
+    position: relative; display: flex; flex-direction: column;
+    box-shadow: 0 0 60px rgba(0,0,0,.5);
   }
-  .icon-btn:hover { background: var(--surface-2); color: var(--text); border-color:#333b48; }
 
-  /* ---------- HUD ---------- */
+  /* top status/hud strip */
   .hud {
-    display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px;
-    margin-bottom: 16px; background: var(--line-soft);
-    border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
-    font-variant-numeric: tabular-nums;
+    position: sticky; top: 0; z-index: 5; background: rgba(11,11,13,.92); backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums;
   }
-  .hud .cell { text-align:center; padding: 11px 6px; background: var(--surface); }
-  .hud .label { color: var(--muted); font-size: .62rem; text-transform: uppercase; letter-spacing: .08em; display:block; margin-bottom:3px; font-weight:600; }
-  .hud .val { font-size: 1.22rem; font-weight: 700; display:block; letter-spacing:-0.02em; }
-  #multiplier.val { color: var(--warn); }
-  #lives.val { color: var(--reject); letter-spacing: 1px; font-size:1.05rem; }
-  #highscore.val { color: var(--text-2); }
+  .hud .stat { text-align: center; }
+  .hud .stat .l { font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); display:block; }
+  .hud .stat .v { font-size: 1rem; font-weight: 700; }
+  #hudScore .v { color: var(--text); }
 
-  /* ---------- level + timer ---------- */
-  .meta-bars { display:flex; flex-direction:column; gap:12px; margin-bottom: 18px; }
-  .levelbar-top { display:flex; justify-content:space-between; font-size:.72rem; color:var(--muted); margin-bottom:6px; font-weight:500; }
-  .levelbar-top .lvl-name { color: var(--text-2); }
-  .levelbar { height:5px; background:var(--surface-2); border-radius:6px; overflow:hidden; }
-  .levelbar > div { height:100%; width:0%; background:var(--accent); transition:width .4s ease; }
+  /* email header */
+  .mail { padding: 20px 20px 60px; overflow-y: auto; flex: 1; }
+  .subject-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 22px; }
+  .subject-row h1 { font-size: 1.55rem; font-weight: 400; line-height: 1.2; flex: 1; }
+  .chip { font-size: .68rem; color: var(--muted); border: 1px solid var(--faint); border-radius: 4px; padding: 2px 7px; margin-top: 6px; }
+  .star { color: var(--faint); font-size: 1.3rem; margin-top: 4px; }
 
-  .timer-wrap { }
-  .timer-label { font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; font-weight:600; }
-  .timerbar { height: 6px; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
-  .timerbar > div { height: 100%; width: 100%; background: var(--offer); transition: width .08s linear, background .2s; }
+  .sender-row { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+  .avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--pink); color: #fff; display:flex; align-items:center; justify-content:center; font-size: 1.15rem; font-weight: 500; flex: 0 0 42px; }
+  .sender-meta { flex: 1; line-height: 1.3; }
+  .sender-meta .name { font-weight: 600; font-size: .98rem; }
+  .sender-meta .name .date { color: var(--muted); font-weight: 400; font-size: .82rem; margin-left: 8px; }
+  .sender-meta .to { color: var(--muted); font-size: .82rem; }
+  .sender-actions { color: var(--muted); font-size: 1.1rem; }
 
-  /* ---------- email (the star of the show) ---------- */
-  .email {
-    background: #fbfcfd; color: #1c2230; width: 100%;
-    border-radius: var(--radius-lg); padding: 0; line-height: 1.62; min-height: 232px;
-    box-shadow: var(--shadow-lg); font-size: 1.0rem; position: relative; overflow: hidden;
-    border: 1px solid rgba(0,0,0,.05);
+  /* body: long, realistic */
+  .body { font-size: 1.12rem; line-height: 1.62; color: var(--text); }
+  .body p { margin-bottom: 20px; }
+  /* every word is tappable */
+  .w { cursor: pointer; border-radius: 4px; padding: 0 1px; transition: background .1s; }
+  .w:hover { background: rgba(138,180,248,.14); }
+  .w.hit { background: var(--hl); color: var(--hl-ink); font-weight: 600; }
+  .w.miss { background: var(--bad); color: #3a0f0c; animation: nudge .3s; }
+  @keyframes nudge { 25%{transform:translateX(-3px)} 75%{transform:translateX(3px)} }
+
+  /* floating countdown timer, like the screenshot overlay */
+  .timer {
+    position: fixed; top: 40%; left: 50%; transform: translate(-50%,-50%);
+    background: rgba(10,10,12,.86); color: #fff; font-size: 2.3rem; font-weight: 500;
+    padding: 12px 26px; border-radius: 10px; font-variant-numeric: tabular-nums; letter-spacing: 1px;
+    pointer-events: none; z-index: 8; transition: color .2s; box-shadow: 0 8px 30px rgba(0,0,0,.5);
   }
-  .email-toolbar {
-    display:flex; align-items:center; gap:7px; padding: 11px 16px;
-    background: #f0f2f5; border-bottom:1px solid #e4e7ec;
+  .timer.low { color: var(--bad); }
+
+  .prompt {
+    position: sticky; bottom: 0; background: rgba(11,11,13,.94); backdrop-filter: blur(6px);
+    border-top: 1px solid var(--line); padding: 12px 16px; text-align: center;
+    font-size: .86rem; color: var(--muted); z-index: 6; min-height: 44px;
   }
-  .email-toolbar .dot { width:11px; height:11px; border-radius:50%; }
-  .email-toolbar .dot.r{ background:#ec6a5e; } .email-toolbar .dot.y{ background:#f4bf4f; } .email-toolbar .dot.g{ background:#61c554; }
-  .email-toolbar .tb-label { margin-left:8px; font-size:.75rem; color:#8a92a0; font-weight:500; }
-  .email-inner { padding: 22px 28px 24px; }
-  .email .from { display:flex; align-items:center; gap:12px; border-bottom: 1px solid #edeff2; padding-bottom: 14px; margin-bottom: 16px; }
-  .email .avatar {
-    width:40px; height:40px; border-radius:50%; flex:0 0 40px; display:flex; align-items:center; justify-content:center;
-    font-weight:700; font-size:1rem; color:#fff; background: linear-gradient(135deg,#6d8bff,#8a6dff);
-  }
-  .email .from-meta { display:flex; flex-direction:column; min-width:0; }
-  .email .from .company { color: #10141c; font-weight:700; font-size:.98rem; }
-  .email .from .subject { color: #5a6474; font-size: .85rem; margin-top:1px; }
-  .email .body { white-space: pre-line; color:#252c3a; }
-  .email .sig { margin-top:16px; color:#8a92a0; font-size:.9rem; }
+  .prompt b { color: var(--text); }
+  .prompt.good { color: var(--good); } .prompt.bad { color: var(--bad); }
 
-  /* tell-tale phrase highlights */
-  .hl { border-radius: 4px; padding: 1px 4px; font-weight: 600; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
-  .hl-reject { background: #fbe0df; color: #b23b39; }
-  .hl-offer { background: #d6f0e3; color: #1f8256; }
-  .hl.pop { animation: hlpop .3s ease-out; }
-  @keyframes hlpop { 0%{ background-color: transparent; } 100%{} }
-
-  /* verdict ribbon */
-  .verdict-tag {
-    position:absolute; top:0; right:0; font-weight:700; font-size:.7rem; letter-spacing:.06em;
-    padding:6px 14px; border-bottom-left-radius: 12px; opacity:0; transform: translateY(-4px);
-    transition:opacity .18s, transform .18s; text-transform:uppercase;
-  }
-  .verdict-tag.reject { background:var(--reject); color:#fff; }
-  .verdict-tag.offer { background:var(--offer); color:#06281c; }
-  .verdict-tag.show { opacity:1; transform: translateY(0); }
-
-  /* subtle result feedback — glow ring instead of shaky animation */
-  .email.flash-good { box-shadow: var(--shadow-lg), 0 0 0 2px var(--offer); }
-  .email.flash-bad  { box-shadow: var(--shadow-lg), 0 0 0 2px var(--reject); }
-
-  .why { margin-top: 14px; text-align:center; font-size:.9rem; color: var(--muted); min-height: 20px; }
-  .why b.r { color: var(--reject); font-weight:600; }
-  .why b.o { color: var(--offer); font-weight:600; }
-  .msg { margin-top: 14px; min-height: 24px; font-weight: 600; text-align:center; font-size:1rem; }
-  .msg.good { color: var(--offer); } .msg.bad { color: var(--reject); }
-
-  /* ---------- decision buttons ---------- */
-  .controls { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  button {
-    border: 0; font-size: 1rem; border-radius: var(--radius); cursor: pointer; font-weight: 600;
-    transition: background .15s, transform .06s, box-shadow .15s, opacity .15s; color:#fff;
-    padding: 15px 24px;
-  }
-  button:active:not(:disabled) { transform: translateY(1px); }
-  button:disabled { opacity:.45; cursor: default; }
-  .btn-decision { display:flex; flex-direction:column; align-items:center; gap:3px; border:1px solid transparent; }
-  .btn-decision .btn-key { font-size:.68rem; opacity:.75; font-weight:500; letter-spacing:.03em; }
-  .reject { background: var(--reject-bg); color: var(--reject); border:1px solid #3a2526; }
-  .reject:hover:not(:disabled) { background:#331f20; border-color: var(--reject); }
-  .offer { background: var(--offer-bg); color: var(--offer); border:1px solid #1f3a2e; }
-  .offer:hover:not(:disabled) { background:#1a3227; border-color: var(--offer); }
-
-  .hint { color: var(--muted); font-size:.8rem; margin-top:16px; text-align:center; line-height:1.5; }
-  .foot-links { margin-top:14px; display:flex; gap:16px; justify-content:center; }
-  .foot-links a { color:var(--muted); font-size:.8rem; text-decoration:none; transition:color .15s; }
-  .foot-links a:hover { color:var(--text-2); text-decoration:underline; }
-
-  /* ---------- overlays ---------- */
+  /* overlays */
   .overlay {
-    position: fixed; inset: 0; background: rgba(8,10,14,.82); backdrop-filter: blur(6px);
-    display:none; flex-direction:column; align-items:center; justify-content:center; gap:18px; z-index:20; padding:24px;
+    position: fixed; inset: 0; background: rgba(8,8,10,.94); backdrop-filter: blur(4px);
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; z-index: 20; padding: 28px; text-align: center;
   }
-  .overlay.show { display:flex; animation: fade .25s ease; }
-  @keyframes fade { from{opacity:0} to{opacity:1} }
-  .overlay h2 { font-size:1.9rem; margin:0; text-align:center; font-weight:700; letter-spacing:-0.02em; }
-  .overlay .lead { color: var(--muted); text-align:center; max-width:400px; margin:0; font-size:.95rem; line-height:1.55; }
-  .overlay .big { font-size:3rem; font-weight:800; color:var(--text); letter-spacing:-0.03em; }
-  .overlay .big .cur { color: var(--muted); font-size:1.1rem; font-weight:600; }
+  .overlay.show { display: flex; }
+  .overlay .mark { font-size: 2.6rem; }
+  .overlay h2 { font-size: 1.7rem; font-weight: 700; }
+  .overlay p { color: var(--muted); line-height: 1.6; max-width: 340px; font-size: .95rem; }
+  .overlay .big { font-size: 3rem; font-weight: 800; }
+  .overlay button {
+    font-family: inherit; font-size: 1rem; font-weight: 600; padding: 13px 34px; border: 0;
+    border-radius: 10px; cursor: pointer; background: var(--accent); color: #06203a;
+  }
+  .overlay button:hover { filter: brightness(1.06); }
+  .overlay .best { color: var(--faint); font-size: .85rem; }
+  .stats { width: min(320px,100%); }
+  .stat-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line); font-size:.95rem; }
+  .stat-row:last-child{ border-bottom:0; } .stat-row .k{ color:var(--muted);} .stat-row .v{ font-weight:700; }
 
-  .panel-card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg); padding:22px 24px; width:min(420px,100%); box-shadow: var(--shadow); }
-  .section-label { color:var(--muted); font-size:.68rem; text-transform:uppercase; letter-spacing:.1em; margin-bottom:10px; font-weight:600; }
+  /* ---------- start-screen collage background ---------- */
+  #startOverlay { overflow: hidden; padding: 0; }
+  .collage {
+    position: absolute; inset: -6%; z-index: 0; pointer-events: none;
+    background: #08080a;
+  }
+  .collage .tile {
+    position: absolute; width: 230px; border-radius: 6px; overflow: hidden;
+    background: #fff; color: #14161a; box-shadow: 0 10px 30px rgba(0,0,0,.55);
+    font-size: 8.5px; line-height: 1.5; padding: 12px 13px;
+    border: 1px solid rgba(0,0,0,.2);
+  }
+  .collage .tile .t-from { font-weight: 700; font-size: 9px; color:#111; margin-bottom: 2px; }
+  .collage .tile .t-sub { color:#666; font-size: 8px; margin-bottom: 7px; border-bottom:1px solid #eee; padding-bottom:6px; }
+  .collage .tile .t-body { color:#2a2f3a; }
+  .collage .tile .t-hl { background:#fde68a; color:#3a2f00; font-weight:700; padding:0 2px; border-radius:2px; }
+  /* dark vignette so the foreground card stays readable */
+  .collage::after {
+    content:""; position:absolute; inset:0;
+    background: radial-gradient(60% 55% at 50% 48%, rgba(8,8,10,.35), rgba(8,8,10,.86) 78%);
+  }
 
-  .how { margin: 0; color: var(--text-2); font-size: .9rem; line-height: 1.55; text-align:left; }
-  .how b.r { color: var(--reject); font-weight:600; }
-  .how b.o { color: var(--offer); font-weight:600; }
+  /* foreground start card sits above the collage (Crossy Road pop-art style) */
+  .start-card {
+    position: relative; z-index: 2; display:flex; flex-direction:column; align-items:center; gap:18px;
+    background: linear-gradient(160deg, #12203a 0%, #0b1220 100%);
+    border: 1px solid rgba(255,255,255,.08); border-radius: 22px;
+    padding: 34px 40px 38px; box-shadow: 0 20px 60px rgba(0,0,0,.65);
+    animation: popIn .5s cubic-bezier(.18,1.5,.4,1) both;
+  }
+  .start-card h2 {
+    font-weight: 900; font-size: 1.7rem; letter-spacing: .04em; color: #1a1400;
+    background: #ffcf3f; padding: 10px 22px; border-radius: 16px;
+    box-shadow: 0 6px 0 #d9a300, 0 12px 24px rgba(0,0,0,.45);
+    transform: rotate(-2deg); margin-bottom: 2px;
+    animation: popDrop .55s cubic-bezier(.18,1.5,.4,1) both;
+  }
 
-  .card-foot { display:flex; justify-content:space-between; margin-top:16px; padding-top:14px; border-top:1px solid var(--line); font-size:.85rem; color:var(--muted); }
-  .card-foot b { color: var(--text-2); font-weight:600; }
+  /* ---------- start-screen name input (chunky, matches leaderboard rows) ---------- */
+  .name-input {
+    width: min(300px,100%); font-family:inherit; font-size:1.05rem; font-weight:700; text-align:center;
+    padding:15px 16px; border-radius:14px; background:#1c2740; border:2px solid #2f3d5e;
+    color:#eaf0ff; outline:none; box-shadow:0 4px 0 rgba(0,0,0,.35);
+    animation: popIn .5s .1s cubic-bezier(.18,1.5,.4,1) both;
+  }
+  .name-input::placeholder { color:#7c8db0; font-weight:600; }
+  .name-input:focus { border-color: #8ab4f8; }
+  .name-input.error { border-color: var(--bad); background:#3a1c22; }
+  .name-input.shake { animation: shake .4s; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    15% { transform: translateX(-9px); }
+    30% { transform: translateX(8px); }
+    45% { transform: translateX(-6px); }
+    60% { transform: translateX(5px); }
+    75% { transform: translateX(-3px); }
+  }
+  .name-note { font-size:.9rem; color:#ff9a94; min-height:16px; font-weight:700; transition:opacity .15s; }
+  .name-note.shake { animation: shake .4s; }
+  /* Start button reuses the bouncy .pop-btn look (defined below) */
+  #startBtn { animation: popIn .5s .2s cubic-bezier(.18,1.6,.4,1) both; }
+  /* keep the name box and Start button close together */
+  .start-card { gap: 12px; }
+  .start-card .name-note { min-height: 0; margin: -4px 0; }
+  .start-card .name-note:empty { display: none; }
+  .start-card #startBtn { margin-top: 4px; }
 
-  .stat-row { display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line-soft); font-size:.95rem; }
-  .stat-row:last-child { border-bottom:0; }
-  .stat-row .k { color:var(--muted); }
-  .stat-row .v { font-weight:600; }
-  .new-hi { color:var(--warn); font-weight:600; font-size:.95rem; display:flex; align-items:center; gap:6px; }
+  /* ================= CROSSY ROAD-STYLE END LEADERBOARD ================= */
+  /* dedicated background for the end screen */
+  #overOverlay { background: linear-gradient(160deg, #12203a 0%, #0b1220 100%); }
 
-  /* primary / secondary buttons for overlays */
-  .btn-primary { background: var(--accent); color:#fff; padding:14px 32px; font-size:1rem; }
-  .btn-primary:hover:not(:disabled) { background:#5a7cff; box-shadow:0 6px 20px rgba(109,139,255,.35); }
-  .btn-ghost { background:transparent; border:1px solid var(--line); color:var(--text-2); padding:14px 26px; }
-  .btn-ghost:hover:not(:disabled) { border-color:#333b48; color:var(--text); }
-  .overlay-actions { display:flex; gap:10px; }
-  .paused-note { color: var(--text-2); font-size:.95rem; }
-  .mark { width:56px; height:56px; border-radius:14px; background:var(--surface); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:1.7rem; box-shadow: var(--shadow); }
+  .lb-screen {
+    width: min(400px, 100%); display:flex; flex-direction:column; align-items:stretch; gap:14px;
+  }
+  .lb-header { text-align:center; }
+  .lb-heading {
+    display:inline-block; font-weight:900; font-size:2rem; letter-spacing:.06em; color:#fff;
+    background:#ffcf3f; color:#1a1400; padding:10px 22px; border-radius:16px;
+    box-shadow:0 6px 0 #d9a300, 0 12px 24px rgba(0,0,0,.45);
+    transform: rotate(-2deg);
+    animation: popDrop .55s cubic-bezier(.18,1.5,.4,1) both;
+  }
+  .lb-your {
+    margin-top:14px; font-weight:800; font-size:1.05rem; color:#fff;
+    animation: popIn .5s .12s cubic-bezier(.18,1.5,.4,1) both;
+  }
+  .lb-your b { color:#ffcf3f; }
 
-  @media (max-width:560px){
-    .hud { grid-template-columns: repeat(3,1fr); }
-    .app-header { flex-direction:column; align-items:flex-start; }
+  .lb-list { list-style:none; display:flex; flex-direction:column; gap:8px; }
+  .lb-list li {
+    display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:14px; font-size:1rem;
+    background:#1c2740; color:#eaf0ff; font-weight:700; box-shadow:0 4px 0 rgba(0,0,0,.35);
+    /* each row pops in; --i sets its stagger delay (set inline in JS) */
+    animation: popRow .45s cubic-bezier(.18,1.6,.4,1) both;
+    animation-delay: calc(0.18s + var(--i, 0) * 0.06s);
+  }
+  .lb-list li .rank {
+    width:30px; height:30px; flex:0 0 30px; border-radius:9px; background:#2f3d5e; color:#cfe0ff;
+    display:flex; align-items:center; justify-content:center; font-weight:900; font-size:.9rem;
+  }
+  .lb-list li:nth-child(1) .rank { background:#ffcf3f; color:#1a1400; }
+  .lb-list li:nth-child(2) .rank { background:#c9d2e6; color:#1a1f2e; }
+  .lb-list li:nth-child(3) .rank { background:#e0955a; color:#241000; }
+  .lb-list .who { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lb-list .time { font-weight:900; font-variant-numeric:tabular-nums; color:#ffcf3f; }
+  .lb-list li.you { background:#2b57b0; box-shadow:0 4px 0 #16306a; outline:2px solid #8ab4f8; }
+  .lb-empty { color:#9fb0d0; text-align:center; font-size:.95rem; padding:16px 0; background:transparent !important; box-shadow:none !important; font-weight:600; animation:none !important; }
+
+  .lb-note { font-size:.85rem; color:#9fb0d0; text-align:center; min-height:16px; font-weight:600;
+    animation: popIn .4s .2s cubic-bezier(.18,1.5,.4,1) both; }
+  .lb-note.ok { color:#7fdca0; } .lb-note.err { color:#ff9a94; }
+
+  .pop-btn {
+    margin-top:6px; align-self:center; font-family:inherit; font-weight:900; font-size:1.05rem;
+    letter-spacing:.04em; color:#0a2a12; background:#57d68d; border:0; border-radius:16px;
+    padding:15px 40px; cursor:pointer; box-shadow:0 6px 0 #2f9e6f, 0 10px 22px rgba(0,0,0,.4);
+    animation: popIn .5s .3s cubic-bezier(.18,1.6,.4,1) both;
+  }
+  .pop-btn:hover { filter:brightness(1.05); }
+  .pop-btn:active { transform: translateY(4px); box-shadow:0 2px 0 #2f9e6f, 0 6px 14px rgba(0,0,0,.4); }
+
+  /* bouncy pop-in keyframes (Crossy Road-ish overshoot) */
+  @keyframes popDrop {
+    0%   { opacity:0; transform: translateY(-60px) rotate(-2deg) scale(.6); }
+    100% { opacity:1; transform: translateY(0) rotate(-2deg) scale(1); }
+  }
+  @keyframes popIn {
+    0%   { opacity:0; transform: scale(.5); }
+    100% { opacity:1; transform: scale(1); }
+  }
+  @keyframes popRow {
+    0%   { opacity:0; transform: translateX(-40px) scale(.85); }
+    60%  { opacity:1; }
+    100% { opacity:1; transform: translateX(0) scale(1); }
   }
 </style>
 </head>
 <body>
-<div class="app">
-  <a class="back" href="index.html">← All games</a>
-
-  <div class="app-header">
-    <div class="app-title">
-      <span class="kicker">After Careful Consideration</span>
-      <h1>Rejection or Offer?</h1>
-    </div>
-    <div class="toprow">
-      <button class="icon-btn" id="pauseBtn" disabled>Pause</button>
-      <button class="icon-btn" id="soundBtn">Sound: On</button>
-    </div>
-  </div>
-
+<div class="phone">
+  <!-- HUD -->
   <div class="hud">
-    <div class="cell"><span class="label">Score</span><span class="val" id="score">0</span></div>
-    <div class="cell"><span class="label">Multiplier</span><span class="val" id="multiplier">x1</span></div>
-    <div class="cell"><span class="label">Streak</span><span class="val" id="streak">0</span></div>
-    <div class="cell"><span class="label">Lives</span><span class="val" id="lives">♥♥♥</span></div>
-    <div class="cell"><span class="label">Level</span><span class="val" id="level">1</span></div>
-    <div class="cell"><span class="label">Best</span><span class="val" id="highscore">0</span></div>
+    <div class="stat"><span class="l">Time</span><span class="v" id="clock">0.00</span></div>
+    <div class="stat"><span class="l">Email</span><span class="v"><span id="round">0</span>/<span id="rounds">0</span></span></div>
+    <div class="stat"><span class="l">Best</span><span class="v" id="best">-</span></div>
   </div>
 
-  <div class="meta-bars">
-    <div>
-      <div class="levelbar-top"><span class="lvl-name" id="levelLabel">Level 1 · Intern szn</span><span id="levelProgTxt">0 / 5</span></div>
-      <div class="levelbar"><div id="levelFill"></div></div>
+  <!-- EMAIL -->
+  <div class="mail" id="mail">
+    <div class="subject-row">
+      <h1 id="subject">-</h1>
+      <span class="chip">Inbox</span>
     </div>
-    <div class="timer-wrap">
-      <div class="timer-label">Time to decide</div>
-      <div class="timerbar"><div id="timerFill"></div></div>
+    <div class="star">☆</div>
+    <div class="sender-row">
+      <div class="avatar" id="avatar">F</div>
+      <div class="sender-meta">
+        <div class="name"><span id="senderName">-</span><span class="date" id="date">-</span></div>
+        <div class="to">to me ⌄</div>
+      </div>
+      <div class="sender-actions">⋯</div>
     </div>
+    <div class="body" id="body"></div>
   </div>
 
-  <div class="email" id="email">
-    <span class="verdict-tag" id="verdictTag"></span>
-    <div class="email-toolbar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="tb-label">Inbox</span></div>
-    <div class="email-inner"><div style="color:#9aa2b0">Press Start to begin sorting your inbox…</div></div>
-  </div>
+  <!-- floating stopwatch (counts up) -->
+  <div class="timer" id="timer">0.00</div>
 
-  <div class="msg" id="msg"></div>
-  <div class="why" id="why"></div>
-
-  <div class="controls">
-    <button class="btn-decision reject" id="rejectBtn" disabled>Rejection<span class="btn-key">← / A</span></button>
-    <button class="btn-decision offer" id="offerBtn" disabled>Offer<span class="btn-key">→ / D</span></button>
-  </div>
-
-  <p class="hint">Correct answers build your streak and multiplier. A wrong call or a timeout costs a life.<br>After each guess, the tell-tale phrase is highlighted so you can see exactly what gave it away.</p>
-
-  <div class="foot-links">
-    <a href="#" id="resetHiLink">Reset high score</a>
-  </div>
+  <!-- bottom prompt -->
+  <div class="prompt" id="prompt">Find and tap the word <b>“Unfortunately”</b> as fast as you can.</div>
 </div>
 
-<!-- START SCREEN -->
+<!-- START -->
 <div class="overlay show" id="startOverlay">
-  <div class="mark">📬</div>
-  <h2>Rejection or Offer?</h2>
-  <p class="lead">Sort a flood of emails from the companies that haunt every UWaterloo co-op cycle. Read fast, decide faster — is it a rejection, or a real offer?</p>
-  <div class="panel-card">
-    <div class="section-label">How to play</div>
-    <p class="how">Each email lands for a few seconds. Call it a <b class="r">Rejection</b> or an <b class="o">Offer</b> before the timer runs out. Build streaks for bonus points — a wrong call or a timeout costs a life.</p>
-    <div class="card-foot">
-      <span>Best score <b id="startHi">0</b></span>
-      <span>Best streak <b id="startBestStreak">0</b></span>
-    </div>
-  </div>
-  <button class="btn-primary" id="startPlayBtn">Start sorting</button>
-  <p class="hint">Use <b>← →</b> arrow keys (or <b>A / D</b>). Press <b>Space</b> to pause.</p>
-</div>
-
-<!-- PAUSE SCREEN -->
-<div class="overlay" id="pauseOverlay">
-  <div class="mark">⏸</div>
-  <h2>Paused</h2>
-  <p class="paused-note">Take a breath. The rejections aren't going anywhere.</p>
-  <div class="overlay-actions">
-    <button class="btn-primary" id="resumeBtn">Resume</button>
-    <button class="btn-ghost" id="quitBtn">Quit to menu</button>
+  <div class="collage" id="collage" aria-hidden="true"></div>
+  <div class="start-card">
+    <h2>Spot the Rejection</h2>
+    <input id="nameInput" class="name-input" type="text" maxlength="16" placeholder="Enter your name" autocomplete="off" spellcheck="false">
+    <div class="name-note" id="nameNote"></div>
+    <button id="startBtn" class="pop-btn">Start</button>
+    <b id="startBest" hidden></b>
   </div>
 </div>
 
-<!-- GAME OVER SCREEN -->
+<!-- OVER: leaderboard only, Crossy Road pop-in -->
 <div class="overlay" id="overOverlay">
-  <h2 id="overTitle">Inbox zero… the hard way.</h2>
-  <div class="big"><span id="finalScore">0</span></div>
-  <div id="newHiMsg" class="new-hi" style="display:none">★ New high score</div>
-  <div class="panel-card">
-    <div class="stat-row"><span class="k">Final score</span><span class="v" id="statScore">0</span></div>
-    <div class="stat-row"><span class="k">Level reached</span><span class="v" id="statLevel">1</span></div>
-    <div class="stat-row"><span class="k">Emails sorted</span><span class="v" id="statSorted">0</span></div>
-    <div class="stat-row"><span class="k">Accuracy</span><span class="v" id="statAcc">0%</span></div>
-    <div class="stat-row"><span class="k">Best streak</span><span class="v" id="statStreak">0</span></div>
-    <div class="stat-row"><span class="k">Avg. decision time</span><span class="v" id="statAvgTime">—</span></div>
-  </div>
-  <p class="lead" id="overMsg"></p>
-  <div class="overlay-actions">
-    <button class="btn-primary" id="againBtn">Play again</button>
-    <button class="btn-ghost" id="menuBtn">Menu</button>
+  <div class="lb-screen" id="lbScreen">
+    <div class="lb-header" id="lbHeader">
+      <div class="lb-heading">LEADERBOARD</div>
+      <div class="lb-your" id="lbYour">Your time -</div>
+    </div>
+    <ul class="lb-list" id="lbList"><li class="lb-empty">Loading…</li></ul>
+    <div class="lb-note" id="lbNote"></div>
+    <button id="againBtn" class="pop-btn">PLAY AGAIN</button>
   </div>
 </div>
 
 <script>
 /* =========================================================================
-   REJECTION OR OFFER? — full game
-   Companies that recruit heavily from UWaterloo. Mix of clear + tricky emails.
-   r:true = rejection, r:false = genuine offer.
-   trick:true flags deliberately ambiguous ones (soft-language rejections or
-   understated offers). Used to weight harder emails into later levels.
+   Emails: long & realistic. The target word to find is always "Unfortunately"
+   (case-insensitive, first occurrence). Bodies use \n\n between paragraphs.
+   Each body contains "Unfortunately" exactly once.
    ========================================================================= */
+const TARGET = "Unfortunately";
+
+/* =========================================================================
+   LEADERBOARD CONFIG
+   Paste your API base URL here after deploying the AWS backend (see
+   AWS-LEADERBOARD-SETUP.md). Example:
+     const LEADERBOARD_API = "https://abc123.execute-api.us-east-1.amazonaws.com";
+   Leave as "" to run the game with the leaderboard disabled (offline mode).
+   ========================================================================= */
+const LEADERBOARD_API = "https://34n8w2i1xd.execute-api.us-east-1.amazonaws.com";
+
 const EMAILS = [
-  // ---- Quant / trading firms ----
-  {r:true,  trick:false, company:"Jane Street", subject:"Your Application to Jane Street", body:"Thank you for taking the time to interview with us. After careful consideration, we've decided not to move forward with your application at this time.", sig:"— Jane Street Recruiting"},
-  {r:false, trick:false, company:"Jane Street", subject:"Jane Street — Offer", body:"We were genuinely impressed. We'd like to offer you a Software Engineer internship on our trading systems team. An official letter is attached.", sig:"— Jane Street Recruiting"},
-  {r:true,  trick:true,  company:"Citadel", subject:"Update on your candidacy", body:"We really enjoyed our conversations and your technical performance was strong. That said, we won't be extending an offer for this cycle. We'd encourage you to reapply next year.", sig:"— Citadel Campus Team"},
-  {r:false, trick:false, company:"Citadel Securities", subject:"Congratulations from Citadel Securities", body:"It is our pleasure to offer you a Quant Developer internship. The team is excited about the possibility of you joining us this summer.", sig:"— Citadel Securities Recruiting"},
-  {r:true,  trick:false, company:"Two Sigma", subject:"Two Sigma Application Status", body:"We appreciate your interest in Two Sigma. Unfortunately, we have decided to proceed with other candidates whose experience more closely matches the role.", sig:"— Two Sigma Talent"},
-  {r:false, trick:true,  company:"Two Sigma", subject:"Next steps", body:"Following your final round, the team would like to move forward with you for the role. Your offer details and start date are outlined below.", sig:"— Two Sigma Talent"},
-  {r:true,  trick:false, company:"Hudson River Trading", subject:"HRT — Application", body:"Thank you for interviewing with HRT. We regret to inform you that we will not be progressing with your application further.", sig:"— HRT Recruiting"},
-  {r:false, trick:false, company:"Jump Trading", subject:"Jump Trading Offer", body:"We're thrilled to extend you an offer to join Jump Trading as a Software Engineer Intern. Welcome — we think you'll thrive here.", sig:"— Jump Trading Campus"},
-  {r:true,  trick:true,  company:"Optiver", subject:"Regarding your Optiver interview", body:"You were a competitive candidate and this was a close decision. After much deliberation, we've chosen to move ahead with others for this particular role.", sig:"— Optiver Recruitment"},
-  {r:false, trick:false, company:"IMC Trading", subject:"An offer from IMC", body:"Great news! IMC would love to have you join as a Trading Technology intern. Please find your offer package attached.", sig:"— IMC Talent Acquisition"},
-  {r:true,  trick:false, company:"DRW", subject:"DRW Application Update", body:"Thanks for your time with DRW. After careful review, we've decided not to extend an offer at this stage.", sig:"— DRW Campus Recruiting"},
-  {r:false, trick:true,  company:"Radix Trading", subject:"Following up", body:"We'd like you on the team. Consider this our formal offer for the Quantitative Technologist role — the paperwork is on its way.", sig:"— Radix Trading"},
-  {r:true,  trick:true,  company:"Akuna Capital", subject:"Thank you from Akuna", body:"We were impressed by your enthusiasm and we hope you'll stay in touch. For now, we'll be moving forward with other applicants.", sig:"— Akuna Capital"},
-  {r:false, trick:false, company:"Susquehanna (SIG)", subject:"SIG Internship Offer", body:"Congratulations! Susquehanna is pleased to offer you a spot in our summer internship program. We can't wait for you to get started.", sig:"— SIG Recruiting"},
+  {
+    company:"Forterra", initial:"F", subject:"Thank you from Forterra", date:"Jul 30",
+    body:
+`Hi Jacob,
 
-  // ---- Big tech ----
-  {r:true,  trick:false, company:"Google", subject:"Your Google Application", body:"Thank you for your interest in Google. After reviewing your application, we won't be moving forward at this time. We received a very high volume of applications.", sig:"— Google Recruiting"},
-  {r:false, trick:false, company:"Google", subject:"Offer — Software Engineering Intern", body:"We are delighted to offer you a Software Engineering Internship at Google. Your recruiter will reach out with next steps and compensation details.", sig:"— Google Recruiting"},
-  {r:true,  trick:true,  company:"Meta", subject:"Meta — interview follow-up", body:"Your onsite feedback was positive overall and this was not an easy call. Ultimately we've decided not to proceed with an offer for this role right now.", sig:"— Meta University Recruiting"},
-  {r:false, trick:false, company:"Meta", subject:"Congrats from Meta!", body:"We're excited to extend you an internship offer at Meta. The team really enjoyed meeting you and would love to have you on board.", sig:"— Meta University Recruiting"},
-  {r:true,  trick:false, company:"Amazon", subject:"Amazon Application Status", body:"Thank you for applying to Amazon. Unfortunately, we will not be moving forward with your candidacy for this position.", sig:"— Amazon University Talent"},
-  {r:false, trick:true,  company:"Amazon", subject:"Update on your application", body:"Following your loop, the hiring team has decided to extend an offer. Details regarding your SDE internship are attached for your review.", sig:"— Amazon University Talent"},
-  {r:true,  trick:false, company:"Microsoft", subject:"Microsoft — Application Update", body:"We appreciate your interest in Microsoft. After careful consideration, we have decided to pursue other candidates for this role.", sig:"— Microsoft Recruiting"},
-  {r:false, trick:false, company:"Microsoft", subject:"Your Microsoft Offer", body:"Congratulations! We would like to offer you a Software Engineering internship at Microsoft. Welcome to the team.", sig:"— Microsoft Recruiting"},
-  {r:false, trick:false, company:"NVIDIA", subject:"NVIDIA Internship Offer", body:"We're pleased to offer you an internship with our GPU software team at NVIDIA. We believe you'll do amazing work here.", sig:"— NVIDIA University Recruiting"},
-  {r:true,  trick:true,  company:"Apple", subject:"Regarding your Apple interview", body:"It was a pleasure getting to know you and your work is clearly impressive. At this time, however, we won't be able to offer you a position on the team.", sig:"— Apple College Recruiting"},
+Thank you for taking the time to apply for the Autonomy Software Engineer role. We understand how daunting the job search process can be, so we try to do things differently here in order to avoid adding to it. At Forterra, transparent communication is one of our core values--and this extends to our hiring process as well.
 
-  // ---- High-growth / startups ----
-  {r:true,  trick:false, company:"Stripe", subject:"Your Stripe Application", body:"Thanks so much for interviewing with Stripe. We've decided not to move forward, but we were glad to learn about your work.", sig:"— Stripe Recruiting"},
-  {r:false, trick:false, company:"Stripe", subject:"Offer from Stripe", body:"We'd love for you to join Stripe as a Software Engineer intern. Your offer letter and details are attached — welcome aboard!", sig:"— Stripe Recruiting"},
-  {r:true,  trick:true,  company:"Databricks", subject:"Databricks — next steps", body:"You clearly have a lot of talent and we enjoyed the discussions. We've chosen to move forward with other candidates for now, but please keep us in mind.", sig:"— Databricks Recruiting"},
-  {r:false, trick:false, company:"Databricks", subject:"Welcome to Databricks", body:"Congratulations — we're extending you an internship offer! The team was unanimous. Let's get you set up.", sig:"— Databricks Recruiting"},
-  {r:true,  trick:false, company:"OpenAI", subject:"OpenAI Application Update", body:"Thank you for your interest in OpenAI. We won't be proceeding with your application, as we had an exceptionally competitive pool this cycle.", sig:"— OpenAI Recruiting"},
-  {r:false, trick:true,  company:"OpenAI", subject:"A note from OpenAI", body:"After discussing internally, we would like to bring you on for the Research Engineering internship. We're excited about what you'll build with us.", sig:"— OpenAI Recruiting"},
-  {r:false, trick:false, company:"Anthropic", subject:"Anthropic — Offer", body:"We're happy to offer you an internship at Anthropic. We were impressed with your thoughtfulness and technical depth.", sig:"— Anthropic Recruiting"},
-  {r:true,  trick:true,  company:"Ramp", subject:"Ramp — following up", body:"We really appreciated your energy throughout the process and it came down to the wire. Regrettably, we've gone with another candidate for the role.", sig:"— Ramp Talent"},
-  {r:false, trick:false, company:"Ramp", subject:"Offer from Ramp", body:"Fantastic news — Ramp would like to offer you a software engineering internship. We'd be lucky to have you.", sig:"— Ramp Talent"},
-  {r:true,  trick:false, company:"Notion", subject:"Your Notion Application", body:"Thank you for the time you invested with Notion. We've decided not to extend an offer at this point in time.", sig:"— Notion People Team"},
-  {r:false, trick:true,  company:"Figma", subject:"Figma — the verdict", body:"Consider this the good kind of email: we'd like you to join Figma for the summer as a Product Engineer intern. Details to follow.", sig:"— Figma Recruiting"},
-  {r:true,  trick:false, company:"Snowflake", subject:"Snowflake Application Status", body:"We appreciate your interest in Snowflake. Unfortunately, we are unable to move forward with your application for this role.", sig:"— Snowflake University"},
-  {r:false, trick:false, company:"Coinbase", subject:"Coinbase Offer", body:"We're excited to offer you an engineering internship at Coinbase. Welcome to the team — let's build the future of finance together.", sig:"— Coinbase Recruiting"},
-  {r:true,  trick:true,  company:"Airbnb", subject:"Airbnb — thank you", body:"We so enjoyed hosting you through our process and your portfolio stood out. For this specific role, though, we've decided to go a different direction.", sig:"— Airbnb Recruiting"},
-  {r:false, trick:false, company:"Uber", subject:"Your Uber Internship Offer", body:"Congratulations! Uber would like to formally offer you a Software Engineer internship. We look forward to having you.", sig:"— Uber University Recruiting"},
-  {r:true,  trick:false, company:"Palantir", subject:"Palantir Application Update", body:"Thank you for interviewing with Palantir. After careful consideration, we will not be extending an offer at this time.", sig:"— Palantir Recruiting"},
-  {r:false, trick:true,  company:"Palantir", subject:"Palantir — decision", body:"The team met and reached a clear conclusion: we want you here. Please treat this as your formal Forward Deployed Software Engineer intern offer.", sig:"— Palantir Recruiting"},
+We received tremendous interest in this role and a plethora of highly qualified candidates. Unfortunately, at this time, we have chosen not to move forward with your application.
 
-  // ---- Canadian / other UW favorites ----
-  {r:false, trick:false, company:"Shopify", subject:"Welcome to Shopify", body:"We're thrilled to offer you an internship at Shopify! Your work impressed the whole panel. Let's make commerce better together.", sig:"— Shopify Talent"},
-  {r:true,  trick:true,  company:"Shopify", subject:"Shopify — update", body:"You brought great energy and we genuinely wrestled with this one. In the end we're moving ahead with other candidates for this term.", sig:"— Shopify Talent"},
-  {r:true,  trick:false, company:"RBC Capital Markets", subject:"RBC — Application Status", body:"Thank you for applying to RBC Capital Markets. We regret to inform you that your application was not successful on this occasion.", sig:"— RBC Early Talent"},
-  {r:false, trick:false, company:"Wealthsimple", subject:"Wealthsimple Offer", body:"Good news — we'd love to have you join Wealthsimple as a software engineering intern. Your offer details are attached.", sig:"— Wealthsimple People"},
-  {r:false, trick:true,  company:"Cohere", subject:"Cohere — next steps", body:"We've made our decision and it's a yes from us. We'd like to bring you on as an ML Engineer intern this term. Welcome to Cohere.", sig:"— Cohere Talent"},
-  {r:true,  trick:false, company:"Faire", subject:"Faire Application Update", body:"Thanks for chatting with the Faire team. We won't be moving forward with your application, but we truly appreciated your time.", sig:"— Faire Recruiting"},
-  {r:true,  trick:true,  company:"Wish", subject:"Thanks for your interest", body:"We wish we had more spots. You were a strong applicant, and while this is not the outcome we'd hoped to share, we'll keep your profile on file.", sig:"— Wish Talent"},
-  {r:false, trick:false, company:"Verkada", subject:"Verkada — Offer", body:"Congratulations! We're pleased to offer you a software engineering internship at Verkada. We were impressed and hope you'll join us.", sig:"— Verkada Recruiting"},
-];
+Where you choose to work is a huge part of your life, so we genuinely appreciate you considering us. We hope that you'll stay in touch regarding future opportunities.
 
-/* ---------- tell-tale phrases (used to highlight WHY after a guess) ----------
-   Ordered longest/most-specific first so we match the clearest signal in the body.
-   Matching is case-insensitive substring search over the email body. */
-const REJECT_TELLS = [
-  "we regret to inform you","regret to inform you","not successful on this occasion",
-  "not be moving forward","won't be moving forward","not moving forward","won't be proceeding",
-  "not be proceeding","won't be able to offer you","not be extending an offer","not be able to offer",
-  "decided not to move forward","decided not to extend an offer","decided not to proceed",
-  "move forward with other candidates","other candidates whose experience","with other candidates",
-  "pursue other candidates","proceed with other candidates","moving ahead with other candidates",
-  "moving forward with other applicants","with other applicants","move ahead with others","chosen to move ahead with others",
-  "go a different direction","gone with another candidate","chosen to move forward with other",
-  "we've chosen to move forward","chosen candidates whose","not be the right fit","won't be the right fit",
-  "unable to move forward","unable to offer you","we will not be","we won't be","not extend an offer",
-  "keep your profile on file","keep us in mind","reapply next year","apply again",
-  "we've decided not to","this is not the outcome","not the outcome we'd hoped","regrettably",
-  "unfortunately","after careful consideration","however","reapply","not be successful","was not successful"
-];
-const OFFER_TELLS = [
-  "pleased to offer you","delighted to offer you","thrilled to offer you","happy to offer you",
-  "excited to offer you","excited to extend you","like to offer you","love to offer you",
-  "pleasure to offer you","our pleasure to offer","it is our pleasure to offer you",
-  "would like to offer you","we'd like to offer you","formally offer you","pleased to extend an offer",
-  "extend you an offer","extend you an internship offer","extending you an internship offer",
-  "extend an offer","would like to extend an offer","we'd love for you to join","we'd love to have you join",
-  "we'd love to have you","love to have you","like you to join","like you on the team","we want you here",
-  "we want you","bring you on","join us","join the team","welcome to the team","welcome aboard",
-  "welcome to","offer you a spot","offer letter","your offer","offer package","offer details",
-  "compensation details","start date","it's a yes","the good kind of email","congratulations",
-  "congrats","great news","good news","fantastic news","we're excited to offer","we are delighted to offer",
-  "we are pleased to offer","would love to have you","have you on board"
-];
+Thank you,
+Forterra`
+  },
+  {
+    company:"Jane Street", initial:"J", subject:"Your Jane Street Application", date:"Aug 12",
+    body:
+`Dear Jacob,
 
-/* find the best-matching tell phrase in a body; returns {phrase,index} or null */
-function findTell(body, tells){
-  const lower = body.toLowerCase();
-  for(const p of tells){
-    const idx = lower.indexOf(p.toLowerCase());
-    if(idx !== -1) return { phrase: body.substr(idx, p.length), index: idx };
+Thank you so much for taking the time to interview with us for the Software Engineer position. It was a genuine pleasure getting to learn more about your background and the projects you've worked on.
+
+Our hiring committee met to review every candidate carefully, and the decisions this cycle were especially difficult given the strength of the pool. Unfortunately, after much deliberation, we will not be moving your application forward at this time.
+
+We would warmly encourage you to apply again in a future recruiting cycle. Please don't hesitate to reach out if you have any questions.
+
+Warm regards,
+Jane Street Recruiting`
+  },
+  {
+    company:"Stripe", initial:"S", subject:"Update on your Stripe application", date:"Sep 03",
+    body:
+`Hi Jacob,
+
+We wanted to follow up regarding your application for the Backend Engineer role on our Payments team. First, thank you for the energy and thoughtfulness you brought to each of your conversations with us.
+
+Your technical fundamentals were clearly strong and the team enjoyed meeting you. Unfortunately, after comparing all candidates for this particular opening, we have decided to proceed with someone whose experience more closely matches what the team needs right now.
+
+This is not a reflection of your ability, and we'd genuinely welcome a future application. Thank you again for your interest in Stripe.
+
+Best,
+The Stripe Recruiting Team`
+  },
+  {
+    company:"Citadel", initial:"C", subject:"Regarding your candidacy", date:"Aug 27",
+    body:
+`Dear Jacob,
+
+Thank you for the time and effort you invested throughout our interview process for the Quantitative Developer internship. We know how much preparation goes into these conversations and we don't take that lightly.
+
+After careful review of all candidates, we have made our final decisions. Unfortunately, we will not be extending an offer for this role. The caliber of applicants was exceptional, which made these choices particularly challenging for our team.
+
+We sincerely hope you'll consider Citadel again in the future, and we wish you the very best in your search.
+
+Sincerely,
+Citadel Campus Recruiting`
+  },
+  {
+    company:"Shopify", initial:"S", subject:"Your application to Shopify", date:"Sep 09",
+    body:
+`Hi Jacob,
+
+Thanks so much for your interest in the Developer Degree / intern role at Shopify and for sharing your work with us. We really enjoyed learning about the things you've built.
+
+We had an incredible response to this posting. Unfortunately, after weighing everything carefully, we've decided to move forward with other candidates for this particular team this term.
+
+Please know this was a tough call. We'd love for you to keep an eye on future postings that match your skills--and to apply again.
+
+Take care,
+Shopify Talent Team`
+  },
+  {
+    company:"OpenAI", initial:"O", subject:"OpenAI application update", date:"Aug 19",
+    body:
+`Hi Jacob,
+
+Thank you for your interest in the Research Engineer internship at OpenAI, and for taking the time to speak with our team about your work.
+
+We received an exceptionally competitive set of applications this cycle. Unfortunately, after thoughtful consideration, we won't be proceeding with your application for this particular role at this time.
+
+We were genuinely impressed by much of what you shared, and we hope you'll consider applying again as our teams and needs continue to grow.
+
+All the best,
+OpenAI Recruiting`
+  },
+  {
+    company:"Databricks", initial:"D", subject:"Your Databricks interview", date:"Jul 18",
+    body:
+`Hi Jacob,
+
+Thank you for spending time with the team for the Software Engineer, Data Platform role. We really appreciated your curiosity and the way you reasoned through the systems design questions.
+
+We had an unusually strong field this cycle. Unfortunately, we've decided to move ahead with other candidates whose experience lines up more closely with this specific team's needs.
+
+We'd be glad to see you apply again as new roles open up. Thanks again for your interest in Databricks.
+
+Best,
+Databricks Recruiting`
+  },
+  {
+    company:"Nvidia", initial:"N", subject:"Application update from NVIDIA", date:"Aug 05",
+    body:
+`Dear Jacob,
+
+Thanks so much for your interest in the GPU Software Engineer internship and for the time you invested in our conversations. Your enthusiasm for low-level performance work really came through.
+
+After a thorough review of all applicants, we've had to make some very tough calls. Unfortunately, we are unable to offer you a position for this term.
+
+Please don't be discouraged from applying to future openings that fit your background. We wish you the very best.
+
+Warm regards,
+NVIDIA University Recruiting`
+  },
+  {
+    company:"Ramp", initial:"R", subject:"Re: Software Engineer application", date:"Sep 11",
+    body:
+`Hey Jacob,
+
+Thanks for taking the time to chat with us about the full-stack role at Ramp. We loved hearing about the side projects you've shipped and the impact you've had.
+
+This was a genuinely hard decision given how many excellent applicants we spoke with. Unfortunately, we won't be moving forward with an offer at this stage.
+
+We're growing fast, so please keep an eye on our careers page. We'd welcome a future application. Thanks again.
+
+Best,
+The Ramp Talent Team`
+  },
+  {
+    company:"Palantir", initial:"P", subject:"Your Palantir application", date:"Jun 27",
+    body:
+`Dear Jacob,
+
+Thank you for interviewing for the Forward Deployed Software Engineer position and for the effort you put into the take-home and follow-up discussions.
+
+Our team debated at length, as the caliber of candidates was exceptional. Unfortunately, we have decided not to extend an offer for this role at this time.
+
+We truly appreciate your interest in Palantir and encourage you to stay connected for future opportunities.
+
+Sincerely,
+Palantir Recruiting`
+  },
+  {
+    company:"Datadog", initial:"D", subject:"Update on your candidacy", date:"Aug 22",
+    body:
+`Hi Jacob,
+
+Thank you for your interest in the Backend Engineer role on our Observability team, and for the thoughtful way you approached each interview.
+
+We received an incredible number of strong applications. Unfortunately, after careful consideration, we've chosen to proceed with another candidate for this particular opening.
+
+We hope you'll consider Datadog again down the road. Thanks so much for your time.
+
+Best regards,
+Datadog Talent`
+  },
+  {
+    company:"Snowflake", initial:"S", subject:"Regarding your application", date:"Jul 09",
+    body:
+`Dear Jacob,
+
+We appreciate the time you took to interview for the Software Engineer, Query Engine position and to learn more about Snowflake.
+
+The hiring committee reviewed every candidate closely. Unfortunately, we will not be progressing your application further for this role at this time.
+
+This was not an easy decision, and we'd sincerely welcome an application from you in the future. Wishing you all the best.
+
+Kind regards,
+Snowflake Recruiting`
+  },
+  {
+    company:"Coinbase", initial:"C", subject:"Your Coinbase application", date:"Sep 01",
+    body:
+`Hi Jacob,
+
+Thanks for your interest in the Software Engineer role and for taking the time to meet with several members of the team. We enjoyed the conversation about distributed systems.
+
+After weighing everything carefully across a very competitive pool, we've reached a decision. Unfortunately, we won't be able to move forward with your candidacy right now.
+
+We'd genuinely encourage you to reapply as the team grows. Thank you again for considering Coinbase.
+
+Best,
+Coinbase Recruiting`
+  },
+  {
+    company:"Airbnb", initial:"A", subject:"Thank you from Airbnb", date:"Aug 29",
+    body:
+`Hi Jacob,
+
+Thank you for interviewing for the Software Engineer, Frontend Platform role, and for sharing so openly about your past work. It was a pleasure getting to know you.
+
+We spoke with many talented people for this position. Unfortunately, we've decided to move forward with another candidate whose background is a closer fit for what the team needs today.
+
+We'd love for you to keep Airbnb in mind for the future. Thanks again for your time and interest.
+
+Warmly,
+Airbnb Recruiting`
+  },
+  {
+    company:"Two Sigma", initial:"T", subject:"Your application to Two Sigma", date:"Jun 15",
+    body:
+`Dear Jacob,
+
+Thank you for your interest in the Software Engineer position at Two Sigma and for the time you dedicated to our interview process.
+
+After careful review by our hiring team, and given an especially competitive applicant pool, we have made our decisions. Unfortunately, we are not able to move forward with your application at this time.
+
+We appreciate the opportunity to have learned about your work, and we wish you great success in your search.
+
+Regards,
+Two Sigma Campus Recruiting`
+  },
+  {
+    company:"Cloudflare", initial:"C", subject:"Re: your application", date:"Sep 06",
+    body:
+`Hi Jacob,
+
+Thanks for applying for the Systems Engineer role and for the energy you brought to your interviews with the team. Your interest in networking and edge computing stood out.
+
+We had a remarkable set of candidates this round. Unfortunately, we've decided not to proceed with your application for this particular position.
+
+We'd be happy to see you apply again for a future opening that matches your strengths. Thank you for your interest in Cloudflare.
+
+Best,
+Cloudflare Recruiting`
   }
-  return null;
-}
+];
+/* Each run plays a fixed number of emails, drawn at random from the pool above. */
+const RUN_LENGTH = 5;
+const $ = id => document.getElementById(id);
 
-/* return {html, phrase} — body with the correct tell wrapped in a highlight span */
-function highlightTell(body, wasReject){
-  const tells = wasReject ? REJECT_TELLS : OFFER_TELLS;
-  const cls = wasReject ? 'hl-reject' : 'hl-offer';
-  const hit = findTell(body, tells);
-  if(!hit) return { html: escapeHtml(body), phrase: null };
-  const before = escapeHtml(body.slice(0, hit.index));
-  const match = escapeHtml(hit.phrase);
-  const after = escapeHtml(body.slice(hit.index + hit.phrase.length));
-  return { html: `${before}<span class="hl ${cls} pop">${match}</span>${after}`, phrase: hit.phrase };
-}
+/* speedrun state: clock counts UP; no lives; personal best = lowest total time */
+let deck=[], cur=null, round=0;
+let running=false, raf=null;
+let runStart=0, emailStart=0, elapsedMs=0;   // total run + per-email
+let found=0, findTimes=[];
+let playerName = '';                          // captured at the start screen (required)
+let best=+(localStorage.getItem('spot_best_ms')||0);   // ms; 0 = none yet
 
+$('rounds').textContent = RUN_LENGTH;
+$('best').textContent = best ? fmtSec(best) : '-';
+$('startBest').textContent = best ? fmtSec(best) : '-';
+
+/* pre-fill the name field with the last name used, and validate */
+$('nameInput').value = (localStorage.getItem('spot_name') || '').slice(0,16);
+validateName();
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
+function fmtSec(ms){ return (Math.max(0,ms)/1000).toFixed(2)+'s'; }
+function fmtClock(ms){ return (Math.max(0,ms)/1000).toFixed(2); }
 function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-/* ---------- fixed game settings (single difficulty for everyone) ---------- */
-const GAME = { base: 2200, min: 1100, lives: 3 };
-const LEVEL_NAMES = ["Intern szn","Coffee chats","First round","Final round","Superday","Return offer","New grad grind","Staff eng","Distinguished","CEO of rejections"];
-const EMAILS_PER_LEVEL = 5;
+/* ---------------------------------------------------------------------------
+   Start-screen collage: scatter rotated email tiles across the background,
+   each showing a snippet with "Unfortunately" highlighted (like a photo wall).
+   --------------------------------------------------------------------------- */
+function buildCollage(){
+  const wall = $('collage');
+  if(!wall) return;
+  wall.innerHTML = '';
+  // a grab-bag of short rejection snippets to fill the tiles
+  const snips = EMAILS.map(e=>{
+    const i = e.body.toLowerCase().indexOf('unfortunately');
+    // take a window of text around "Unfortunately"
+    const start = Math.max(0, i - 60);
+    const end = Math.min(e.body.length, i + 90);
+    let frag = e.body.slice(start, end).replace(/\n+/g,' ').trim();
+    frag = frag.replace(/Jacob/g, 'there');
+    const hl = frag.replace(/Unfortunately/, '<span class="t-hl">Unfortunately</span>');
+    return { from: e.company, sub: e.subject, body: (start>0?'…':'') + hl + (end<e.body.length?'…':'') };
+  });
 
-/* ---------- element refs ---------- */
-const el = id => document.getElementById(id);
-const emailEl=el('email'), scoreEl=el('score'), multEl=el('multiplier'), streakEl=el('streak'),
-      livesEl=el('lives'), levelEl=el('level'), hiEl=el('highscore'), msgEl=el('msg'),
-      timerFill=el('timerFill'), levelFill=el('levelFill'), levelLabel=el('levelLabel'),
-      levelProgTxt=el('levelProgTxt'), verdictTag=el('verdictTag'), whyEl=el('why'),
-      rejectBtn=el('rejectBtn'), offerBtn=el('offerBtn'), pauseBtn=el('pauseBtn'), soundBtn=el('soundBtn'),
-      startOverlay=el('startOverlay'), pauseOverlay=el('pauseOverlay'), overOverlay=el('overOverlay');
-
-/* ---------- persistence ---------- */
-const HS_KEY='rejoff_highscore', BS_KEY='rejoff_beststreak', SND_KEY='rejoff_sound';
-let highScore = +(localStorage.getItem(HS_KEY)||0);
-let bestStreakAllTime = +(localStorage.getItem(BS_KEY)||0);
-let soundOn = localStorage.getItem(SND_KEY)!=='off';
-
-/* ---------- state ---------- */
-let score, streak, bestStreak, lives, level, levelProgress, mult;
-let current, running, paused, deck;
-let timerRAF=null, roundStart=0, roundEnd=0, roundLen=2200;
-let sorted, correctCount, decisionTimes;
-
-/* ---------- sound (WebAudio, no assets) ---------- */
-let actx=null;
-function beep(freq, dur, type='sine', gain=0.06){
-  if(!soundOn) return;
-  try{
-    if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
-    const o=actx.createOscillator(), g=actx.createGain();
-    o.type=type; o.frequency.value=freq;
-    o.connect(g); g.connect(actx.destination);
-    g.gain.setValueAtTime(gain, actx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime+dur);
-    o.start(); o.stop(actx.currentTime+dur);
-  }catch(e){}
-}
-const sfx = {
-  correct(){ beep(660,0.09,'triangle',0.07); setTimeout(()=>beep(880,0.10,'triangle',0.07),70); },
-  wrong(){ beep(200,0.18,'sawtooth',0.08); },
-  timeout(){ beep(160,0.25,'square',0.06); },
-  levelup(){ beep(523,0.09,'triangle',0.08); setTimeout(()=>beep(659,0.09,'triangle',0.08),90); setTimeout(()=>beep(784,0.14,'triangle',0.08),180); },
-  over(){ beep(392,0.14,'sine',0.07); setTimeout(()=>beep(311,0.14,'sine',0.07),140); setTimeout(()=>beep(233,0.28,'sine',0.07),280); },
-  click(){ beep(440,0.04,'sine',0.04); },
-};
-
-/* ---------- helpers ---------- */
-function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
-function multiplierFor(s){ return 1 + Math.floor(s/3); } // +1x every 3 streak
-
-function buildDeck(){
-  // Weight: early levels favor clear (non-trick) emails; later levels mix in tricks.
-  const clear = shuffle(EMAILS.filter(e=>!e.trick));
-  const tricky = shuffle(EMAILS.filter(e=>e.trick));
-  return { clear, tricky };
-}
-
-function drawEmail(){
-  // As level rises, probability of a tricky email increases.
-  const trickChance = Math.min(0.6, 0.08 + level*0.07);
-  const useTrick = Math.random() < trickChance && deck.tricky.length;
-  let pool = useTrick ? deck.tricky : deck.clear;
-  if(pool.length===0){ // refill exhausted pool
-    const fresh = buildDeck();
-    deck.clear = fresh.clear; deck.tricky = fresh.tricky;
-    pool = useTrick ? deck.tricky : deck.clear;
+  // tile across a grid with jitter + rotation so it reads like a montage
+  const cols = 5, rows = 5;
+  const vw = wall.clientWidth || window.innerWidth;
+  const vh = wall.clientHeight || window.innerHeight;
+  const cellW = vw / cols, cellH = vh / rows;
+  let n = 0;
+  for(let r=0; r<rows; r++){
+    for(let c=0; c<cols; c++){
+      const s = snips[n % snips.length]; n++;
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      const rot = (Math.random()*26 - 13).toFixed(1);
+      const jx = (Math.random()*0.5 - 0.25) * cellW;
+      const jy = (Math.random()*0.5 - 0.25) * cellH;
+      const left = c*cellW + jx - 30;
+      const top  = r*cellH + jy - 20;
+      const scale = (0.85 + Math.random()*0.4).toFixed(2);
+      tile.style.left = left + 'px';
+      tile.style.top = top + 'px';
+      tile.style.transform = `rotate(${rot}deg) scale(${scale})`;
+      tile.style.zIndex = String(Math.floor(Math.random()*10));
+      tile.innerHTML =
+        `<div class="t-from">${escapeHtml(s.from)}</div>`+
+        `<div class="t-sub">${escapeHtml(s.sub)}</div>`+
+        `<div class="t-body">${s.body}</div>`;
+      wall.appendChild(tile);
+    }
   }
-  return pool.pop();
+}
+buildCollage();
+window.addEventListener('resize', ()=>{ if($('startOverlay').classList.contains('show')) buildCollage(); });
+
+/* Render the email body. The word "Unfortunately" (TARGET) is wrapped as a
+   single tappable target; every other word is individually tappable too. */
+function renderBody(email){
+  // personalize: the sample bodies greet "Jacob", swap in the player's name
+  const personalized = email.body.replace(/Jacob/g, playerName || 'there');
+  const paras = personalized.split('\n\n');
+  const tLower = TARGET.toLowerCase();
+  const html = paras.map(para => {
+    const idx = para.toLowerCase().indexOf(tLower);
+    const segments = [];
+    if(idx >= 0){
+      segments.push({text: para.slice(0, idx), target:false});
+      segments.push({text: para.slice(idx, idx+TARGET.length), target:true});
+      segments.push({text: para.slice(idx+TARGET.length), target:false});
+    } else {
+      segments.push({text: para, target:false});
+    }
+    return '<p>' + segments.map(seg => {
+      if(seg.text === '') return '';
+      if(seg.target) return `<span class="w tell" data-target="1">${escapeHtml(seg.text)}</span>`;
+      return seg.text.split(/(\s+)/).map(tok =>
+        tok.trim()==='' ? escapeHtml(tok) : `<span class="w" data-target="0">${escapeHtml(tok)}</span>`
+      ).join('');
+    }).join('') + '</p>';
+  }).join('');
+  $('body').innerHTML = html;
+  $('body').querySelectorAll('.w').forEach(w => w.addEventListener('click', ()=>onWord(w)));
 }
 
-/* ---------- HUD ---------- */
-function heartStr(n){ return '♥'.repeat(Math.max(0,n)) || '—'; }
-function updateHud(){
-  scoreEl.textContent = score;
-  multEl.textContent = 'x'+mult;
-  streakEl.textContent = streak;
-  livesEl.textContent = heartStr(lives);
-  levelEl.textContent = level;
-  hiEl.textContent = Math.max(highScore, score);
-  levelLabel.textContent = `Level ${level} · ${LEVEL_NAMES[Math.min(level-1,LEVEL_NAMES.length-1)]}`;
-  levelProgTxt.textContent = `${levelProgress} / ${EMAILS_PER_LEVEL}`;
-  levelFill.style.width = (levelProgress/EMAILS_PER_LEVEL*100)+'%';
-}
-
-/* ---------- round flow ---------- */
 function nextEmail(){
-  current = drawEmail();
-  whyEl.innerHTML='';
-  const initials = current.company.replace(/[^A-Za-z ]/g,'').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase() || '@';
-  emailEl.innerHTML =
-    `<span class="verdict-tag" id="verdictTag"></span>`+
-    `<div class="email-toolbar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="tb-label">Inbox</span></div>`+
-    `<div class="email-inner">`+
-      `<div class="from">`+
-        `<div class="avatar">${initials}</div>`+
-        `<div class="from-meta"><span class="company">${current.company}</span>`+
-        `<span class="subject">${current.subject}</span></div>`+
-      `</div>`+
-      `<div class="body">${current.body}</div>`+
-      `<div class="sig">${current.sig}</div>`+
-    `</div>`;
-  // recompute timer length: shrinks as you level up, floored at GAME.min
-  roundLen = Math.max(GAME.min, GAME.base - (level-1)*140);
-  roundStart = performance.now();
-  roundEnd = roundStart + roundLen;
-  cancelAnimationFrame(timerRAF);
-  tick();
+  if(round >= RUN_LENGTH || !deck.length){ finish(); return; }
+  cur = deck.pop();
+  round++;
+  $('round').textContent = round;
+  $('subject').textContent = cur.subject;
+  $('senderName').textContent = cur.company;
+  $('date').textContent = cur.date;
+  $('avatar').textContent = cur.initial;
+  $('prompt').className = 'prompt';
+  $('prompt').innerHTML = 'Find and tap the word <b>“Unfortunately”</b>.';
+  renderBody(cur);
+  $('mail').scrollTop = 0;
+  emailStart = performance.now();
 }
 
+/* single rAF loop drives the count-up clock for the whole run */
 function tick(){
-  if(paused) return;
-  const remain = roundEnd - performance.now();
-  const pct = Math.max(0, remain/roundLen*100);
-  timerFill.style.width = pct+'%';
-  timerFill.style.background = pct<30 ? 'var(--reject)' : (pct<60 ? 'var(--warn)' : 'var(--offer)');
-  if(remain<=0){ handleTimeout(); return; }
-  timerRAF = requestAnimationFrame(tick);
-}
-
-function showVerdictTag(wasReject){
-  const tag = emailEl.querySelector('.verdict-tag');
-  if(!tag) return;
-  tag.textContent = wasReject ? 'REJECTION' : 'OFFER';
-  tag.className = 'verdict-tag ' + (wasReject?'reject':'offer') + ' show';
-}
-
-/* re-render the email body with the tell-tale phrase highlighted, and explain why */
-function revealTell(){
-  if(!current) return;
-  const wasReject = current.r;
-  const { html, phrase } = highlightTell(current.body, wasReject);
-  const bodyEl = emailEl.querySelector('.body');
-  if(bodyEl) bodyEl.innerHTML = html;
-  if(phrase){
-    whyEl.innerHTML = wasReject
-      ? `Tell: <b class="r">"${escapeHtml(phrase)}"</b> → rejection`
-      : `Tell: <b class="o">"${escapeHtml(phrase)}"</b> → offer`;
-  } else {
-    whyEl.innerHTML = wasReject ? `<b class="r">Rejection</b> — a soft "no"` : `<b class="o">Offer</b> — a clear "yes"`;
-  }
-}
-
-function answer(saidReject){
-  if(!running || paused || !current) return;
-  const decisionMs = performance.now() - roundStart;
-  decisionTimes.push(decisionMs);
-  sorted++;
-  cancelAnimationFrame(timerRAF);
-  const correct = (saidReject === current.r);
-  showVerdictTag(current.r);
-  revealTell();
-  if(correct){
-    correctCount++;
-    streak++; bestStreak=Math.max(bestStreak,streak);
-    mult = multiplierFor(streak);
-    // faster = more: up to +40 speed bonus
-    const speedBonus = Math.max(0, Math.round((1 - decisionMs/roundLen) * 40));
-    const gained = (50 + speedBonus) * mult;
-    score += gained;
-    emailEl.classList.add('flash-good');
-    msgEl.className='msg good'; msgEl.textContent=`Correct  +${gained}${mult>1?`  ·  x${mult}`:''}`;
-    sfx.correct();
-    levelProgress++;
-    if(levelProgress>=EMAILS_PER_LEVEL) levelUp();
-  } else {
-    streak=0; mult=1; lives--;
-    emailEl.classList.add('flash-bad');
-    msgEl.className='msg bad';
-    msgEl.textContent = current.r ? "Not quite — that was a rejection" : "Not quite — that was a real offer";
-    sfx.wrong();
-  }
-  updateHud();
-  finishTurn(correct);
-}
-
-function handleTimeout(){
-  if(!running || paused) return;
-  sorted++;
-  streak=0; mult=1; lives--;
-  showVerdictTag(current.r);
-  revealTell();
-  emailEl.classList.add('flash-bad');
-  msgEl.className='msg bad'; msgEl.textContent='Time — '+(current.r?'it was a rejection':'it was an offer');
-  sfx.timeout();
-  updateHud();
-  finishTurn(false);
-}
-
-function finishTurn(correct){
-  // Advance quickly when right; linger on wrong answers so you can study the highlight.
-  const advanceDelay = correct ? 650 : 1900;
-  const overDelay = correct ? 650 : 1900;
-  setTimeout(()=>emailEl.classList.remove('flash-good','flash-bad'), 350);
-  if(lives<=0){ setTimeout(endGame, overDelay); return; }
-  setTimeout(()=>{ if(running && !paused){ msgEl.className='msg'; msgEl.textContent=''; nextEmail(); } }, advanceDelay);
-}
-
-function levelUp(){
-  level++;
-  levelProgress=0;
-  sfx.levelup();
-  msgEl.className='msg good'; msgEl.textContent = `Level ${level} · ${LEVEL_NAMES[Math.min(level-1,LEVEL_NAMES.length-1)]}`;
-}
-
-/* ---------- game lifecycle ---------- */
-function startGame(){
-  score=0; streak=0; bestStreak=0; lives=GAME.lives; level=1; levelProgress=0; mult=1;
-  sorted=0; correctCount=0; decisionTimes=[];
-  deck = buildDeck();
-  running=true; paused=false;
-  rejectBtn.disabled=false; offerBtn.disabled=false; pauseBtn.disabled=false;
-  startOverlay.classList.remove('show');
-  overOverlay.classList.remove('show');
-  pauseOverlay.classList.remove('show');
-  updateHud();
-  msgEl.className='msg'; msgEl.textContent='';
-  nextEmail();
-}
-
-function endGame(){
-  running=false; current=null; cancelAnimationFrame(timerRAF);
-  rejectBtn.disabled=true; offerBtn.disabled=true; pauseBtn.disabled=true;
-  sfx.over();
-  // persist
-  const isHi = score>highScore;
-  if(isHi){ highScore=score; localStorage.setItem(HS_KEY, highScore); }
-  if(bestStreak>bestStreakAllTime){ bestStreakAllTime=bestStreak; localStorage.setItem(BS_KEY, bestStreakAllTime); }
-  // stats
-  const acc = sorted? Math.round(correctCount/sorted*100):0;
-  const avg = decisionTimes.length? (decisionTimes.reduce((a,b)=>a+b,0)/decisionTimes.length/1000).toFixed(2)+'s' : '—';
-  el('finalScore').textContent = score;
-  el('statScore').textContent = score;
-  el('statLevel').textContent = level;
-  el('statSorted').textContent = sorted;
-  el('statAcc').textContent = acc+'%';
-  el('statStreak').textContent = bestStreak;
-  el('statAvgTime').textContent = avg;
-  el('newHiMsg').style.display = isHi ? 'block' : 'none';
-  el('overTitle').textContent = isHi ? "New personal best!" : "Inbox zero… the hard way.";
-  el('overMsg').textContent =
-    acc>=90 && sorted>=12 ? "HR literally cannot fool you. Return offer incoming." :
-    acc>=75 ? "Sharp eye. You've clearly read too many of these." :
-    acc>=50 ? "Decent — but a few soft rejections slipped past you." :
-    "The 'we regret to inform you's got you. Keep grinding.";
-  overOverlay.classList.add('show');
-  syncStartScreenStats();
-}
-
-function togglePause(){
   if(!running) return;
-  paused = !paused;
-  if(paused){
-    cancelAnimationFrame(timerRAF);
-    pauseOverlay.classList.add('show');
-    pauseBtn.textContent='Resume';
+  elapsedMs = performance.now() - runStart;
+  $('timer').textContent = fmtClock(elapsedMs);
+  $('clock').textContent = fmtClock(elapsedMs);
+  raf = requestAnimationFrame(tick);
+}
+
+function onWord(w){
+  if(!running) return;
+  if(w.dataset.target === '1'){
+    const t = (performance.now() - emailStart)/1000;
+    findTimes.push(t); found++;
+    w.classList.add('hit');
+    disableWords();
+    $('prompt').className = 'prompt good';
+    $('prompt').innerHTML = `✓ Found in <b>${t.toFixed(2)}s</b>`;
+    setTimeout(()=>{ if(running) nextEmail(); }, 550);   // brief beat, no penalty
   } else {
-    pauseOverlay.classList.remove('show');
-    pauseBtn.textContent='Pause';
-    // resume timer preserving remaining time
-    const remain = roundEnd - performance.now();
-    roundEnd = performance.now() + Math.max(120, remain);
-    tick();
+    // wrong tap: no penalty, no life loss. the clock is already ticking, so
+    // fumbling naturally costs you time. Just nudge and keep going.
+    w.classList.add('miss');
+    setTimeout(()=>w.classList.remove('miss'), 300);
+    $('prompt').className = 'prompt bad';
+    $('prompt').innerHTML = 'Not it, keep scanning.';
   }
 }
 
-function quitToMenu(){
-  running=false; paused=false; cancelAnimationFrame(timerRAF);
-  rejectBtn.disabled=true; offerBtn.disabled=true; pauseBtn.disabled=true; pauseBtn.textContent='Pause';
-  pauseOverlay.classList.remove('show'); overOverlay.classList.remove('show');
-  startOverlay.classList.add('show');
-  syncStartScreenStats();
+function disableWords(){ $('body').querySelectorAll('.w').forEach(w=>w.style.pointerEvents='none'); }
+
+/* clean + validate the start-screen name */
+function cleanName(raw){
+  return (raw || '').replace(/[<>\u0000-\u001F]/g,'').trim().slice(0,16);
+}
+function validateName(){
+  return cleanName($('nameInput').value).length >= 1;
 }
 
-function syncStartScreenStats(){
-  el('startHi').textContent = highScore;
-  el('startBestStreak').textContent = bestStreakAllTime;
-  hiEl.textContent = highScore;
+function flagNameError(){
+  const input = $('nameInput'), note = $('nameNote');
+  note.textContent = '👆 Enter your name first!';
+  input.classList.add('error');
+  // restart the shake animation each click
+  input.classList.remove('shake'); note.classList.remove('shake');
+  void input.offsetWidth;   // force reflow so the animation replays
+  input.classList.add('shake'); note.classList.add('shake');
+  input.focus();
 }
 
-/* ---------- sound toggle ---------- */
-function toggleSound(){
-  soundOn = !soundOn;
-  localStorage.setItem(SND_KEY, soundOn?'on':'off');
-  soundBtn.textContent = soundOn ? 'Sound: On' : 'Sound: Off';
-  if(soundOn) sfx.click();
-}
-
-/* ---------- wiring ---------- */
-rejectBtn.addEventListener('click', ()=>answer(true));
-offerBtn.addEventListener('click', ()=>answer(false));
-pauseBtn.addEventListener('click', togglePause);
-soundBtn.addEventListener('click', toggleSound);
-el('startPlayBtn').addEventListener('click', startGame);
-el('againBtn').addEventListener('click', startGame);
-el('resumeBtn').addEventListener('click', togglePause);
-el('quitBtn').addEventListener('click', quitToMenu);
-el('menuBtn').addEventListener('click', quitToMenu);
-
-el('resetHiLink').addEventListener('click', e=>{
-  e.preventDefault();
-  if(confirm('Reset your saved high score and best streak?')){
-    highScore=0; bestStreakAllTime=0;
-    localStorage.removeItem(HS_KEY); localStorage.removeItem(BS_KEY);
-    syncStartScreenStats();
+function start(){
+  if(!validateName()){
+    flagNameError();
+    return;
   }
+  playerName = cleanName($('nameInput').value);
+  localStorage.setItem('spot_name', playerName);
+  $('nameNote').textContent = '';
+  $('nameInput').classList.remove('error','shake');
+  deck = shuffle([...EMAILS]).slice(0, RUN_LENGTH);   // random 5 from the pool
+  round=0; found=0; findTimes=[]; elapsedMs=0;
+  running=true;
+  $('startOverlay').classList.remove('show');
+  $('overOverlay').classList.remove('show');
+  $('clock').textContent='0.00'; $('timer').textContent='0.00';
+  runStart = performance.now();
+  nextEmail();
+  cancelAnimationFrame(raf); tick();
+}
+
+function finish(){
+  running=false; cancelAnimationFrame(raf);
+  const total = elapsedMs;
+  const isBest = best===0 || total < best;
+  if(isBest){ best = Math.round(total); localStorage.setItem('spot_best_ms', best); }
+  $('startBest').textContent = fmtSec(best);
+
+  // leaderboard-only end screen (Crossy Road pop-in)
+  lastRunMs = Math.round(total);
+  $('lbYour').innerHTML = isBest
+    ? `New best! <b>${fmtSec(total)}</b>`
+    : `Your time <b>${fmtSec(total)}</b> · best ${fmtSec(best)}`;
+  // re-trigger the pop animations by reflowing the screen node
+  const scr = $('lbScreen');
+  scr.style.animation = 'none'; void scr.offsetWidth; scr.style.animation = '';
+  $('overOverlay').classList.add('show');
+  setupLeaderboard();
+}
+
+/* =========================================================================
+   LEADERBOARD (AWS-backed; degrades gracefully when offline / not configured)
+   GET  {API}/scores        -> { scores: [ { name, timeMs }, ... ] }  (sorted asc)
+   POST {API}/scores  body: { name, timeMs } -> { ok: true }
+   The name is captured at the start screen; the run auto-submits on finish.
+   ========================================================================= */
+let lastRunMs = 0;
+
+function lbConfigured(){ return typeof LEADERBOARD_API === 'string' && LEADERBOARD_API.trim() !== ''; }
+
+/* ---- local leaderboard fallback (used when no API URL is configured) ---- */
+function localScores(){ try { return JSON.parse(localStorage.getItem('spot_scores')||'[]'); } catch { return []; } }
+function saveLocalScore(name, timeMs){
+  const list = localScores();
+  list.push({ name, timeMs });
+  list.sort((a,b)=>a.timeMs-b.timeMs);
+  localStorage.setItem('spot_scores', JSON.stringify(list.slice(0,25)));
+}
+
+function setupLeaderboard(){
+  const note = $('lbNote');
+  note.className = 'lb-note'; note.textContent = '';
+  if(!lbConfigured()){
+    // offline: keep a local leaderboard on this device so the board still shows
+    const name = playerName || 'You';
+    saveLocalScore(name, lastRunMs);
+    note.textContent = 'Local leaderboard (this device). Add your API URL to go global.';
+    renderLeaderboard(localScores(), name);
+    return;
+  }
+  // auto-submit this run under the player's name, then show the board
+  submitScore();
+}
+
+async function fetchLeaderboard(highlightName){
+  const list = $('lbList');
+  try {
+    const res = await fetch(LEADERBOARD_API.replace(/\/$/,'') + '/scores', { method:'GET' });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    renderLeaderboard(data.scores || [], highlightName);
+  } catch(e){
+    list.innerHTML = '<li class="lb-empty">Couldn\u2019t load the leaderboard. Try again shortly.</li>';
+  }
+}
+
+function renderLeaderboard(scores, highlightName){
+  const list = $('lbList');
+  if(!scores.length){ list.innerHTML = '<li class="lb-empty">No times yet. Be the first!</li>'; return; }
+  scores.sort((a,b)=> a.timeMs - b.timeMs);
+  // highlight only the first matching name (your best entry), not every row
+  let highlighted = false;
+  list.innerHTML = scores.slice(0,10).map((s,i)=>{
+    let cls = '';
+    if(!highlighted && highlightName && s.name === highlightName){ cls = 'you'; highlighted = true; }
+    return `<li class="${cls}" style="--i:${i}"><span class="rank">${i+1}</span>`+
+           `<span class="who">${escapeHtml(s.name)}</span>`+
+           `<span class="time">${(s.timeMs/1000).toFixed(2)}s</span></li>`;
+  }).join('');
+}
+
+async function submitScore(){
+  if(!lbConfigured()) return;
+  const name = playerName || 'Anonymous';
+  const note = $('lbNote');
+  note.className = 'lb-note'; note.textContent = 'Submitting your time…';
+  $('lbList').innerHTML = '<li class="lb-empty">Loading…</li>';
+  try {
+    const res = await fetch(LEADERBOARD_API.replace(/\/$/,'') + '/scores', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ name, timeMs: lastRunMs })
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    note.className = 'lb-note ok'; note.textContent = `Submitted as ${name} 🎉`;
+    fetchLeaderboard(name);
+  } catch(e){
+    note.className = 'lb-note err'; note.textContent = 'Submit failed. Showing current standings.';
+    fetchLeaderboard(name);
+  }
+}
+
+$('startBtn').addEventListener('click', start);
+$('againBtn').addEventListener('click', start);
+
+// name is required at the start screen; clear the error styling as they type
+$('nameInput').addEventListener('input', ()=>{
+  $('nameNote').textContent='';
+  $('nameInput').classList.remove('error','shake');
 });
+$('nameInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); start(); } });
 
 document.addEventListener('keydown', e=>{
-  if(e.key==='ArrowLeft' || e.key==='a' || e.key==='A') answer(true);
-  else if(e.key==='ArrowRight' || e.key==='d' || e.key==='D') answer(false);
-  else if(e.code==='Space'){ e.preventDefault(); if(running) togglePause(); }
-  else if(e.key==='Enter'){ if(!running) startGame(); }
+  // don't hijack keys while typing the name
+  if(document.activeElement === $('nameInput')) return;
+  if(!running && (e.code==='Space'||e.key==='Enter')) start();
 });
-
-/* ---------- init ---------- */
-soundBtn.textContent = soundOn ? 'Sound: On' : 'Sound: Off';
-syncStartScreenStats();
 </script>
 </body>
 </html>

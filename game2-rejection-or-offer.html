@@ -191,8 +191,11 @@
 
   .lb-screen {
     width: min(400px, 100%); display:flex; flex-direction:column; align-items:stretch; gap:14px;
+    max-height: calc(100dvh - 56px);   /* keep the whole screen within the viewport */
   }
-  .lb-header { text-align:center; }
+  .lb-header { text-align:center; flex:0 0 auto; }
+  /* everything except the list stays fixed height; only the list scrolls */
+  .lb-screen > .lb-note, .lb-screen > #againBtn, .lb-screen > .gh-star { flex:0 0 auto; }
   .lb-heading {
     display:inline-block; font-weight:900; font-size:2rem; letter-spacing:.06em; color:#fff;
     background:#ffcf3f; color:#1a1400; padding:10px 22px; border-radius:16px;
@@ -206,8 +209,18 @@
   }
   .lb-your b { color:#ffcf3f; }
 
-  .lb-list { list-style:none; display:flex; flex-direction:column; gap:8px; }
+  .lb-list {
+    list-style:none; display:flex; flex-direction:column; gap:8px;
+    overflow-y:auto; min-height:0; flex:1 1 auto;   /* list scrolls; header + buttons stay put */
+    padding:2px 8px 2px 2px; margin:0 -4px;          /* room for scrollbar + row shadows */
+    -webkit-overflow-scrolling:touch;
+  }
+  /* thin, themed scrollbar */
+  .lb-list::-webkit-scrollbar { width:8px; }
+  .lb-list::-webkit-scrollbar-thumb { background:#2f3d5e; border-radius:8px; }
+  .lb-list::-webkit-scrollbar-track { background:transparent; }
   .lb-list li {
+    flex:0 0 auto;
     display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:14px; font-size:1rem;
     background:#1c2740; color:#eaf0ff; font-weight:700; box-shadow:0 4px 0 rgba(0,0,0,.35);
     /* each row pops in; --i sets its stagger delay (set inline in JS) */

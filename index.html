@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>After Careful Consideration — Rejection or Offer?</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --surface: #171b23;
+    --surface-2: #1d222c;
+    --line: #262c37;
+    --line-soft: #1e232c;
+    --text: #eceef2;
+    --text-2: #b6bcc8;
+    --muted: #7c8494;
+    --accent: #6d8bff;
+    --accent-soft: #223055;
+    --reject: #e2635f;
+    --offer: #4bb583;
+    --warn: #d9a441;
+    --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.28);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,.35), 0 24px 60px rgba(0,0,0,.45);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh; padding: 40px 24px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    letter-spacing: -0.01em;
+  }
+  .wrap { width: min(560px, 100%); text-align: center; }
+  .kicker { color: var(--muted); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; font-size: .7rem; }
+  h1 { font-size: clamp(2rem, 6vw, 2.9rem); margin: 12px 0 10px; font-weight: 700; letter-spacing: -0.03em; }
+  .tagline { color: var(--text-2); font-size: 1.02rem; line-height: 1.6; max-width: 480px; margin: 0 auto 32px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
+    padding: 30px; text-decoration: none; color: var(--text); display: block;
+    box-shadow: var(--shadow-lg); text-align: left; transition: border-color .18s, transform .18s;
+    position: relative;
+  }
+  .card:hover { border-color: #333b48; transform: translateY(-2px); }
+  .card .mark { width: 52px; height: 52px; border-radius: 13px; background: linear-gradient(135deg,#6d8bff,#8a6dff); display:flex; align-items:center; justify-content:center; font-size:1.5rem; margin-bottom: 16px; }
+  .card h2 { margin: 0 0 8px; font-size: 1.35rem; font-weight: 700; letter-spacing:-0.02em; }
+  .card p { margin: 0; color: var(--text-2); line-height: 1.6; font-size: .95rem; }
+  .tags { display:flex; flex-wrap:wrap; gap:7px; margin-top:18px; }
+  .tags span { background: var(--surface-2); border:1px solid var(--line); color: var(--muted); font-size:.72rem; padding:4px 10px; border-radius: 20px; }
+  .cta { margin-top: 22px; display:inline-flex; align-items:center; gap:8px; background: var(--accent); color:#fff; font-weight:600; font-size:.95rem; padding: 12px 22px; border-radius: 10px; transition: background .15s; }
+  .card:hover .cta { background:#5a7cff; }
+
+  footer { margin-top: 34px; color: var(--muted); font-size: .82rem; text-align: center; max-width: 460px; line-height:1.6; }
+  .quote { font-style: italic; margin-top: 8px; color: var(--muted); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="kicker">After Careful Consideration</div>
+    <h1>Rejection or Offer?</h1>
+    <p class="tagline">You've read a thousand of these emails. Might as well make a game of it — spot the "unfortunately" before the clock runs out.</p>
+
+    <a class="card" href="game2-rejection-or-offer.html">
+      <div class="mark">📬</div>
+      <h2>Play the game</h2>
+      <p>Sort a stream of emails from the companies every UWaterloo co-op knows — Jane Street, Citadel, Two Sigma, Stripe, Shopify, Google, OpenAI and more. Reject or Offer before the timer drains. Build streaks, stack multipliers, and level up as the inbox speeds up. After every guess the tell-tale phrase is highlighted so you learn exactly what gave it away.</p>
+      <div class="tags">
+        <span>50+ emails</span><span>3 difficulties</span><span>Combo multipliers</span><span>Levels</span><span>High scores</span><span>Phrase highlights</span><span>Keyboard controls</span>
+      </div>
+      <span class="cta">Start playing →</span>
+    </a>
+  </div>
+
+  <footer>
+    <p>Self-contained — no install, no build, no server. Just open the file in a browser.</p>
+    <p class="quote">"We were impressed by your background, but after careful consideration…"</p>
+  </footer>
+</body>
+</html>
